@@ -66,14 +66,12 @@ const getDefaultRooms = (floor: number): string[] => {
 const getWeekDates = (weekOffset: number = 0): string[] => {
   const dates: string[] = [];
   const today = new Date();
-  const targetDate = new Date(today);
-  targetDate.setDate(today.getDate() + (weekOffset * 7));
   
-  let currentDay = targetDate.getDay();
+  let currentDay = today.getDay();
   currentDay = currentDay === 0 ? 7 : currentDay;
   
-  const monday = new Date(targetDate);
-  monday.setDate(targetDate.getDate() - currentDay + 1);
+  const monday = new Date(today);
+  monday.setDate(today.getDate() - currentDay + 1 + (weekOffset * 7));
   
   for (let i = 0; i < 7; i++) {
     const date = new Date(monday);
@@ -116,10 +114,10 @@ const getPeriodLabel = (dates: string[], viewMode: ViewMode): string => {
   if (viewMode === 'week') {
     const firstDay = firstDate.getDate();
     const lastDay = lastDate.getDate();
-    const month = firstDate.toLocaleDateString('ru-RU', { month: 'long' });
     const year = firstDate.getFullYear();
     
     if (firstDate.getMonth() === lastDate.getMonth()) {
+      const month = firstDate.toLocaleDateString('ru-RU', { month: 'long' });
       return `${firstDay}-${lastDay} ${month} ${year}`;
     } else {
       const firstMonth = firstDate.toLocaleDateString('ru-RU', { month: 'short' });
@@ -127,8 +125,9 @@ const getPeriodLabel = (dates: string[], viewMode: ViewMode): string => {
       return `${firstDay} ${firstMonth} - ${lastDay} ${lastMonth} ${year}`;
     }
   } else {
-    const month = firstDate.toLocaleDateString('ru-RU', { month: 'long' });
-    const year = firstDate.getFullYear();
+    const targetDate = new Date(dates[Math.floor(dates.length / 2)]);
+    const month = targetDate.toLocaleDateString('ru-RU', { month: 'long' });
+    const year = targetDate.getFullYear();
     return `${month} ${year}`;
   }
 };
