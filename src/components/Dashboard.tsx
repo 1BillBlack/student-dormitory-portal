@@ -51,10 +51,10 @@ export const Dashboard = () => {
   const { users, updateUser, deleteUser, createUser, updateUserPositions } = useUsers();
   const { toast } = useToast();
 
-  const canManageAnnouncements = ['manager', 'admin', 'chairman', 'vice_chairman'].includes(user?.role || '');
-  const canManageUsers = ['manager', 'admin', 'chairman', 'vice_chairman'].includes(user?.role || '');
+  const canManageAnnouncements = ['manager', 'admin', 'moderator'].includes(user?.role || '');
+  const canManageUsers = ['manager', 'admin', 'moderator'].includes(user?.role || '');
   const hasCouncilAccess = 
-    ['manager', 'admin', 'chairman', 'vice_chairman'].includes(user?.role || '') ||
+    ['manager', 'admin', 'moderator'].includes(user?.role || '') ||
     (user?.positions && user.positions.length > 0);
 
   const handleDeleteUser = (userId: string) => {

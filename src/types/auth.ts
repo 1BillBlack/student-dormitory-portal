@@ -1,6 +1,8 @@
-export type UserRole = 'manager' | 'admin' | 'chairman' | 'vice_chairman' | 'member';
+export type UserRole = 'manager' | 'admin' | 'moderator' | 'member';
 
 export type UserPosition = 
+  | 'chairman'
+  | 'vice_chairman'
   | 'cultural_sector'
   | 'household_sector'
   | 'sports_sector'

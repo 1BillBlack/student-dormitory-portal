@@ -35,9 +35,14 @@ interface WorkingDays {
   [date: string]: boolean;
 }
 
+interface ClosedRooms {
+  [date: string]: string[];
+}
+
 interface CleanlinessSettings {
   rooms: RoomsList;
   workingDays: WorkingDays;
+  closedRooms: ClosedRooms;
   defaultNonWorkingDays: number[];
 }
 
@@ -170,6 +175,7 @@ export const CleanlinessPanel = ({ currentUser, users }: CleanlinesPanelProps) =
       '5': getDefaultRooms(5),
     },
     workingDays: {},
+    closedRooms: {},
     defaultNonWorkingDays: [5, 6, 7],
   });
 
@@ -204,7 +210,7 @@ export const CleanlinessPanel = ({ currentUser, users }: CleanlinesPanelProps) =
   };
 
   const canManageSettings = (): boolean => {
-    return ['manager', 'admin', 'chairman', 'vice_chairman'].includes(currentUser.role);
+    return ['manager', 'admin', 'moderator'].includes(currentUser.role);
   };
 
   const canEditAnyFloor = (): boolean => {
@@ -324,6 +330,36 @@ export const CleanlinessPanel = ({ currentUser, users }: CleanlinesPanelProps) =
       title: currentStatus ? 'День закрыт' : 'День открыт',
       description: `${date} ${currentStatus ? 'закрыт для проверок' : 'открыт для проверок'}`,
     });
+  };
+
+  const toggleRoomClosed = (date: string, room: string) => {
+    const newSettings = { ...settings };
+    
+    if (!newSettings.closedRooms[date]) {
+      newSettings.closedRooms[date] = [];
+    }
+    
+    const isCurrentlyClosed = newSettings.closedRooms[date].includes(room);
+    
+    if (isCurrentlyClosed) {
+      newSettings.closedRooms[date] = newSettings.closedRooms[date].filter(r => r !== room);
+      if (newSettings.closedRooms[date].length === 0) {
+        delete newSettings.closedRooms[date];
+      }
+    } else {
+      newSettings.closedRooms[date].push(room);
+    }
+    
+    saveSettings(newSettings);
+    
+    toast({
+      title: isCurrentlyClosed ? 'Комната открыта' : 'Комната закрыта',
+      description: `Комната ${room} ${isCurrentlyClosed ? 'открыта' : 'закрыта'} для проверки ${date}`,
+    });
+  };
+
+  const isRoomClosed = (date: string, room: string): boolean => {
+    return settings.closedRooms[date]?.includes(room) || false;
   };
 
   const dates = viewMode === 'week' ? getWeekDates(periodOffset) : getMonthDates(periodOffset);
@@ -545,6 +581,7 @@ export const CleanlinessPanel = ({ currentUser, users }: CleanlinesPanelProps) =
                         {dates.map(date => {
                           const scoreData = getScore(selectedFloor, date, room);
                           const working = isWorkingDay(date, settings);
+                          const roomClosed = isRoomClosed(date, room);
                           
                           if (!working) {
                             return (
@@ -555,24 +592,53 @@ export const CleanlinessPanel = ({ currentUser, users }: CleanlinesPanelProps) =
                               </td>
                             );
                           }
+
+                          if (roomClosed) {
+                            return (
+                              <td key={date} className="border p-1 bg-orange-50 relative group">
+                                <div className="h-12 flex items-center justify-center">
+                                  <Icon name="Lock" size={16} className="text-orange-600" />
+                                </div>
+                                {canManageSettings() && editMode && (
+                                  <button
+                                    onClick={() => toggleRoomClosed(date, room)}
+                                    className="absolute top-0 right-0 p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                                  >
+                                    <Icon name="Unlock" size={12} className="text-orange-600" />
+                                  </button>
+                                )}
+                              </td>
+                            );
+                          }
                           
                           return (
-                            <td key={date} className="border p-1">
+                            <td key={date} className="border p-1 relative group">
                               {editMode ? (
-                                <Select 
-                                  value={scoreData?.score?.toString() || ''} 
-                                  onValueChange={(v) => handleScoreChange(selectedFloor, date, room, v)}
-                                >
-                                  <SelectTrigger className={`w-full h-12 text-xs ${scoreData ? getScoreColor(scoreData.score) : ''}`}>
-                                    <SelectValue placeholder="—" />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    <SelectItem value="5">5</SelectItem>
-                                    <SelectItem value="4">4</SelectItem>
-                                    <SelectItem value="3">3</SelectItem>
-                                    <SelectItem value="2">2</SelectItem>
-                                  </SelectContent>
-                                </Select>
+                                <>
+                                  <Select 
+                                    value={scoreData?.score?.toString() || ''} 
+                                    onValueChange={(v) => handleScoreChange(selectedFloor, date, room, v)}
+                                  >
+                                    <SelectTrigger className={`w-full h-12 text-xs ${scoreData ? getScoreColor(scoreData.score) : ''}`}>
+                                      <SelectValue placeholder="—" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="5">5</SelectItem>
+                                      <SelectItem value="4">4</SelectItem>
+                                      <SelectItem value="3">3</SelectItem>
+                                      <SelectItem value="2">2</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                  {canManageSettings() && (
+                                    <button
+                                      onClick={() => toggleRoomClosed(date, room)}
+                                      className="absolute top-0 right-0 p-1 opacity-0 group-hover:opacity-100 transition-opacity bg-white rounded-bl border-l border-b"
+                                      title="Закрыть комнату"
+                                    >
+                                      <Icon name="Lock" size={12} className="text-orange-600" />
+                                    </button>
+                                  )}
+                                </>
                               ) : (
                                 <div className={`h-12 flex items-center justify-center rounded border ${
                                   scoreData ? getScoreColor(scoreData.score) : 'bg-gray-50'

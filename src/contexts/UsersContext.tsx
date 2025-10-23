@@ -6,8 +6,8 @@ const USERS_STORAGE_KEY = 'dormitory_users';
 const initialUsers: User[] = [
   { id: '1', email: 'manager@dorm.ru', name: 'Алексей Менеджеров', role: 'manager', room: '101', isFrozen: false, positions: [] },
   { id: '2', email: 'admin@dorm.ru', name: 'Мария Администраторова', role: 'admin', room: '205', isFrozen: false, positions: [] },
-  { id: '3', email: 'chairman@dorm.ru', name: 'Иван Председателев', role: 'chairman', room: '310', isFrozen: false, positions: ['cultural_sector'] },
-  { id: '4', email: 'vice@dorm.ru', name: 'Елена Заместителева', role: 'vice_chairman', room: '415', isFrozen: false, positions: ['sports_sector'] },
+  { id: '3', email: 'moderator@dorm.ru', name: 'Иван Модераторов', role: 'moderator', room: '310', isFrozen: false, positions: ['chairman', 'cultural_sector'] },
+  { id: '4', email: 'vice@dorm.ru', name: 'Елена Заместителева', role: 'member', room: '415', isFrozen: false, positions: ['vice_chairman', 'sports_sector'] },
   { id: '5', email: 'member@dorm.ru', name: 'Петр Участников', role: 'member', room: '520', isFrozen: false, positions: [] },
 ];
 

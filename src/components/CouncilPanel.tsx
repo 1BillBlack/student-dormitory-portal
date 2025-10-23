@@ -16,18 +16,17 @@ export const CouncilPanel = ({ users, currentUser }: CouncilPanelProps) => {
   const [activeTab, setActiveTab] = useState<'members' | 'tasks'>('tasks');
   
   const councilMembers = users.filter(u => 
-    ['manager', 'admin', 'chairman', 'vice_chairman'].includes(u.role) ||
+    ['manager', 'admin', 'moderator'].includes(u.role) ||
     (u.positions && u.positions.length > 0)
   );
 
-  const canManageTasks = ['manager', 'admin', 'chairman', 'vice_chairman'].includes(currentUser.role);
+  const canManageTasks = ['manager', 'admin', 'moderator'].includes(currentUser.role);
 
   const getRoleName = (role: string) => {
     const roles = {
       manager: 'Менеджер',
       admin: 'Администратор',
-      chairman: 'Председатель студсовета',
-      vice_chairman: 'Заместитель председателя',
+      moderator: 'Модератор',
       member: 'Участник',
     };
     return roles[role as keyof typeof roles] || role;
@@ -36,7 +35,7 @@ export const CouncilPanel = ({ users, currentUser }: CouncilPanelProps) => {
   const getRoleBadgeVariant = (role: string) => {
     if (role === 'manager') return 'default';
     if (role === 'admin') return 'secondary';
-    if (role === 'chairman') return 'outline';
+    if (role === 'moderator') return 'outline';
     return 'secondary';
   };
 

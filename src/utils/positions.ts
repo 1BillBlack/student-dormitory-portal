@@ -1,6 +1,8 @@
 import { UserPosition } from '@/types/auth';
 
 export const POSITION_NAMES: Record<UserPosition, string> = {
+  chairman: 'Председатель студсовета',
+  vice_chairman: 'Заместитель председателя студсовета',
   cultural_sector: 'Ответственный за культурно-массовый сектор',
   household_sector: 'Ответственный за хозяйственно-бытовой сектор',
   sports_sector: 'Ответственный за спортивный сектор',

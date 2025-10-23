@@ -76,11 +76,10 @@ export const UserManagementDialog = ({ user, open, onOpenChange, onSave, mode }:
   };
 
   const getRoleName = (role: UserRole) => {
-    const roles = {
+    const roles: Record<UserRole, string> = {
       manager: 'Менеджер',
       admin: 'Администратор',
-      chairman: 'Председатель студсовета',
-      vice_chairman: 'Заместитель председателя',
+      moderator: 'Модератор',
       member: 'Участник',
     };
     return roles[role];
