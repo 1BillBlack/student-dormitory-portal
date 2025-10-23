@@ -205,27 +205,6 @@ export const CleanlinessPanel = ({ currentUser, users }: CleanlinesPanelProps) =
     return canEditAnyFloor();
   };
 
-  const getUserFloors = (): number[] => {
-    if (canViewAllFloors()) return [2, 3, 4, 5];
-    
-    const floors: number[] = [];
-    if (!currentUser.positions) return floors;
-    
-    currentUser.positions.forEach(position => {
-      if (position.startsWith('floor_')) {
-        const match = position.match(/floor_(\d)_/);
-        if (match) {
-          const floor = parseInt(match[1]);
-          if (!floors.includes(floor)) {
-            floors.push(floor);
-          }
-        }
-      }
-    });
-    
-    return floors.sort();
-  };
-
   const getUserFloorFromPosition = (): number | null => {
     if (!currentUser.positions || currentUser.positions.length === 0) return null;
     
@@ -244,8 +223,37 @@ export const CleanlinessPanel = ({ currentUser, users }: CleanlinesPanelProps) =
     ? getFloorFromRoom(currentUser.room) 
     : getUserFloorFromPosition();
 
+  const getUserFloors = (): number[] => {
+    if (canViewAllFloors()) return [2, 3, 4, 5];
+    
+    const floors: number[] = [];
+    if (!currentUser.positions) {
+      // Если нет должностей, но есть комната — показываем этаж комнаты
+      return userFloor ? [userFloor] : [];
+    }
+    
+    currentUser.positions.forEach(position => {
+      if (position.startsWith('floor_')) {
+        const match = position.match(/floor_(\d)_/);
+        if (match) {
+          const floor = parseInt(match[1]);
+          if (!floors.includes(floor)) {
+            floors.push(floor);
+          }
+        }
+      }
+    });
+    
+    // Добавляем этаж комнаты, если его нет в списке
+    if (userFloor && !floors.includes(userFloor)) {
+      floors.push(userFloor);
+    }
+    
+    return floors.sort();
+  };
+
   const userFloors = getUserFloors();
-  const availableFloors = userFloors.length > 0 ? userFloors : (userFloor ? [userFloor] : []);
+  const availableFloors = userFloors;
 
   useEffect(() => {
     const stored = localStorage.getItem(STORAGE_KEY);
