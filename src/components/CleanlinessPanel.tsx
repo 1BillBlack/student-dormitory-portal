@@ -68,13 +68,17 @@ const getWeekDates = (weekOffset: number = 0): string[] => {
   const now = new Date();
   
   let dayOfWeek = now.getDay();
+  console.log('Current day of week (0=Sunday):', dayOfWeek);
   if (dayOfWeek === 0) dayOfWeek = 7;
+  console.log('Adjusted day of week (7=Sunday):', dayOfWeek);
   
   const daysFromMonday = dayOfWeek - 1;
+  console.log('Days from Monday:', daysFromMonday);
   
   const mondayTimestamp = now.getTime() - (daysFromMonday * 24 * 60 * 60 * 1000) + (weekOffset * 7 * 24 * 60 * 60 * 1000);
   const monday = new Date(mondayTimestamp);
   monday.setHours(0, 0, 0, 0);
+  console.log('Monday date:', monday.toISOString().split('T')[0]);
   
   for (let i = 0; i < 7; i++) {
     const dayTimestamp = mondayTimestamp + (i * 24 * 60 * 60 * 1000);
@@ -82,6 +86,7 @@ const getWeekDates = (weekOffset: number = 0): string[] => {
     dates.push(day.toISOString().split('T')[0]);
   }
   
+  console.log('Generated week dates:', dates);
   return dates;
 };
 
