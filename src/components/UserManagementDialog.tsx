@@ -52,6 +52,11 @@ export const UserManagementDialog = ({
     return ['manager', 'admin', 'moderator'].includes(currentUserRole);
   };
 
+  const canEditEmail = (): boolean => {
+    if (!currentUserRole) return false;
+    return ['manager', 'admin'].includes(currentUserRole);
+  };
+
   useEffect(() => {
     if (user && mode === 'edit') {
       setEmail(user.email);
@@ -141,7 +146,7 @@ export const UserManagementDialog = ({
                 placeholder="user@example.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                disabled={mode === 'edit'}
+                disabled={mode === 'edit' && !canEditEmail()}
               />
             </div>
             <div className="space-y-2">

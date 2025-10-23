@@ -25,11 +25,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Checkbox } from '@/components/ui/checkbox';
 import Icon from '@/components/ui/icon';
 import { useToast } from '@/hooks/use-toast';
 import { User, UserPosition } from '@/types/auth';
-import { getPositionName } from '@/utils/positions';
+import { getPositionName, getAllPositions } from '@/utils/positions';
 
 interface Task {
   id: number;
@@ -66,7 +65,7 @@ export const CouncilTasksPanel = ({ canManage, userName, councilMembers }: Counc
   const [dueDate, setDueDate] = useState('');
   const { toast } = useToast();
 
-  const allPositions: UserPosition[] = ['chairman', 'vice_chairman', 'cultural_organizer', 'sports_organizer', 'media_manager', 'treasurer', 'general_member'];
+  const allPositions: UserPosition[] = getAllPositions();
 
   useEffect(() => {
     const stored = localStorage.getItem(STORAGE_KEY);
@@ -114,21 +113,23 @@ export const CouncilTasksPanel = ({ canManage, userName, councilMembers }: Counc
       createdAt: new Date().toISOString(),
     };
 
-    saveTasks([newTask, ...tasks]);
+    saveTasks([...tasks, newTask]);
     
-    const assignees = [...assignedToUsers, ...assignedToPositions.map(p => getPositionName(p))].join(', ');
     toast({
-      title: 'Успешно!',
-      description: `Задача создана. Исполнители: ${assignees}`,
+      title: 'Задача создана',
+      description: 'Новая задача успешно добавлена',
     });
 
     resetForm();
+    setOpen(false);
   };
 
   const handleEditTask = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!editingTask || !title.trim() || !dueDate) {
+    if (!editingTask) return;
+
+    if (!title.trim() || !dueDate) {
       toast({
         title: 'Ошибка',
         description: 'Заполните название и срок выполнения',
@@ -146,34 +147,25 @@ export const CouncilTasksPanel = ({ canManage, userName, councilMembers }: Counc
       return;
     }
 
-    const updatedTasks = tasks.map(t => 
-      t.id === editingTask.id 
-        ? { ...t, title, description, assignedToUsers, assignedToPositions, priority, dueDate }
-        : t
-    );
+    const updatedTask: Task = {
+      ...editingTask,
+      title,
+      description,
+      assignedToUsers,
+      assignedToPositions,
+      priority,
+      dueDate,
+    };
 
-    saveTasks(updatedTasks);
+    saveTasks(tasks.map(t => t.id === editingTask.id ? updatedTask : t));
     
     toast({
-      title: 'Обновлено!',
-      description: 'Задача успешно изменена',
+      title: 'Сохранено',
+      description: 'Изменения успешно сохранены',
     });
 
     resetForm();
-  };
-
-  const handleDeleteTask = () => {
-    if (deleteTaskId === null) return;
-
-    const updatedTasks = tasks.filter(t => t.id !== deleteTaskId);
-    saveTasks(updatedTasks);
-    
-    toast({
-      title: 'Удалено',
-      description: 'Задача удалена',
-    });
-
-    setDeleteTaskId(null);
+    setOpen(false);
   };
 
   const resetForm = () => {
@@ -183,7 +175,6 @@ export const CouncilTasksPanel = ({ canManage, userName, councilMembers }: Counc
     setAssignedToPositions([]);
     setPriority('medium');
     setDueDate('');
-    setOpen(false);
     setEditingTask(null);
   };
 
@@ -191,11 +182,21 @@ export const CouncilTasksPanel = ({ canManage, userName, councilMembers }: Counc
     setEditingTask(task);
     setTitle(task.title);
     setDescription(task.description);
-    setAssignedToUsers(task.assignedToUsers || []);
-    setAssignedToPositions(task.assignedToPositions || []);
+    setAssignedToUsers(task.assignedToUsers);
+    setAssignedToPositions(task.assignedToPositions);
     setPriority(task.priority);
     setDueDate(task.dueDate);
     setOpen(true);
+  };
+
+  const handleDeleteTask = (taskId: number) => {
+    saveTasks(tasks.filter(t => t.id !== taskId));
+    setDeleteTaskId(null);
+    
+    toast({
+      title: 'Удалено',
+      description: 'Задача успешно удалена',
+    });
   };
 
   const handleStatusChange = (taskId: number, newStatus: Task['status']) => {
@@ -309,60 +310,85 @@ export const CouncilTasksPanel = ({ canManage, userName, councilMembers }: Counc
                     
                     <div className="space-y-2">
                       <Label className="text-sm font-normal">Члены студсовета</Label>
-                      <div className="grid gap-2 max-h-48 overflow-y-auto border rounded-md p-3">
-                        {councilMembers.length > 0 ? (
-                          councilMembers.map(member => (
-                            <div key={member.id} className="flex items-center space-x-2">
-                              <Checkbox
-                                id={`user-${member.id}`}
-                                checked={assignedToUsers.includes(member.name)}
-                                onCheckedChange={(checked) => {
-                                  if (checked) {
-                                    setAssignedToUsers([...assignedToUsers, member.name]);
-                                  } else {
-                                    setAssignedToUsers(assignedToUsers.filter(n => n !== member.name));
-                                  }
-                                }}
-                              />
-                              <label
-                                htmlFor={`user-${member.id}`}
-                                className="text-sm cursor-pointer flex-1"
-                              >
+                      <Select
+                        value=""
+                        onValueChange={(value) => {
+                          if (value && !assignedToUsers.includes(value)) {
+                            setAssignedToUsers([...assignedToUsers, value]);
+                          }
+                        }}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Выберите участника" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {councilMembers.length > 0 ? (
+                            councilMembers.map(member => (
+                              <SelectItem key={member.id} value={member.name}>
                                 {member.name} ({member.email})
-                              </label>
-                            </div>
-                          ))
-                        ) : (
-                          <p className="text-sm text-muted-foreground">Нет членов студсовета</p>
-                        )}
-                      </div>
+                              </SelectItem>
+                            ))
+                          ) : (
+                            <SelectItem value="none" disabled>Нет членов студсовета</SelectItem>
+                          )}
+                        </SelectContent>
+                      </Select>
+                      {assignedToUsers.length > 0 && (
+                        <div className="flex flex-wrap gap-2 mt-2">
+                          {assignedToUsers.map(userName => (
+                            <Badge key={userName} variant="secondary" className="gap-1">
+                              {userName}
+                              <button
+                                type="button"
+                                onClick={() => setAssignedToUsers(assignedToUsers.filter(n => n !== userName))}
+                                className="ml-1 hover:text-destructive"
+                              >
+                                <Icon name="X" size={14} />
+                              </button>
+                            </Badge>
+                          ))}
+                        </div>
+                      )}
                     </div>
 
                     <div className="space-y-2">
                       <Label className="text-sm font-normal">Должности</Label>
-                      <div className="grid gap-2 border rounded-md p-3">
-                        {allPositions.map(position => (
-                          <div key={position} className="flex items-center space-x-2">
-                            <Checkbox
-                              id={`pos-${position}`}
-                              checked={assignedToPositions.includes(position)}
-                              onCheckedChange={(checked) => {
-                                if (checked) {
-                                  setAssignedToPositions([...assignedToPositions, position]);
-                                } else {
-                                  setAssignedToPositions(assignedToPositions.filter(p => p !== position));
-                                }
-                              }}
-                            />
-                            <label
-                              htmlFor={`pos-${position}`}
-                              className="text-sm cursor-pointer flex-1"
-                            >
+                      <Select
+                        value=""
+                        onValueChange={(value) => {
+                          const position = value as UserPosition;
+                          if (position && !assignedToPositions.includes(position)) {
+                            setAssignedToPositions([...assignedToPositions, position]);
+                          }
+                        }}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Выберите должность" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {allPositions.map(position => (
+                            <SelectItem key={position} value={position}>
                               {getPositionName(position)}
-                            </label>
-                          </div>
-                        ))}
-                      </div>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {assignedToPositions.length > 0 && (
+                        <div className="flex flex-wrap gap-2 mt-2">
+                          {assignedToPositions.map(position => (
+                            <Badge key={position} variant="secondary" className="gap-1">
+                              {getPositionName(position)}
+                              <button
+                                type="button"
+                                onClick={() => setAssignedToPositions(assignedToPositions.filter(p => p !== position))}
+                                className="ml-1 hover:text-destructive"
+                              >
+                                <Icon name="X" size={14} />
+                              </button>
+                            </Badge>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-4">
@@ -402,118 +428,113 @@ export const CouncilTasksPanel = ({ canManage, userName, councilMembers }: Counc
         )}
       </div>
 
-      <div className="grid gap-4">
-        {tasks.length === 0 && (
+      <div className="space-y-3">
+        {tasks.length === 0 ? (
           <Card>
-            <CardContent className="py-12 text-center text-muted-foreground">
-              <Icon name="ListTodo" size={48} className="mx-auto mb-4 opacity-20" />
-              <p>Задач пока нет</p>
+            <CardContent className="py-8">
+              <p className="text-center text-muted-foreground">
+                Задач пока нет
+              </p>
             </CardContent>
           </Card>
-        )}
-
-        {tasks.map((task, index) => (
-          <Card key={task.id} className="hover:shadow-lg transition-shadow animate-slide-in" style={{ animationDelay: `${index * 100}ms` }}>
-            <CardHeader>
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex-1">
-                  <CardTitle className="text-base">{task.title}</CardTitle>
-                  <CardDescription className="mt-2">{task.description}</CardDescription>
-                  <div className="flex flex-wrap items-center gap-3 mt-3 text-sm text-muted-foreground">
-                    <div className="flex flex-col gap-1">
-                      {task.assignedToUsers && task.assignedToUsers.length > 0 && (
-                        <div className="flex items-center gap-1">
-                          <Icon name="User" size={14} />
-                          {task.assignedToUsers.join(', ')}
-                        </div>
-                      )}
-                      {task.assignedToPositions && task.assignedToPositions.length > 0 && (
-                        <div className="flex items-center gap-1">
-                          <Icon name="Briefcase" size={14} />
-                          {task.assignedToPositions.map(p => getPositionName(p)).join(', ')}
-                        </div>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Icon name="Calendar" size={14} />
-                      {formatDate(task.dueDate)}
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Icon name="UserCheck" size={14} />
-                      {task.createdBy}
-                    </div>
-                    {task.completedAt && (
-                      <div className="flex items-center gap-1 text-green-600">
-                        <Icon name="CheckCircle" size={14} />
-                        Завершено {formatDate(task.completedAt)}
-                      </div>
-                    )}
+        ) : (
+          tasks.map(task => (
+            <Card key={task.id}>
+              <CardHeader>
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex-1">
+                    <CardTitle className="text-lg">{task.title}</CardTitle>
+                    <CardDescription className="mt-1">
+                      {task.description || 'Без описания'}
+                    </CardDescription>
+                  </div>
+                  <div className="flex gap-2">
+                    <Badge variant={getPriorityColor(task.priority)}>
+                      {getPriorityName(task.priority)}
+                    </Badge>
+                    <Badge variant={getStatusColor(task.status)}>
+                      {getStatusName(task.status)}
+                    </Badge>
                   </div>
                 </div>
-                <div className="flex flex-col gap-2">
-                  <Badge variant={getPriorityColor(task.priority)}>
-                    {getPriorityName(task.priority)}
-                  </Badge>
-                  <Badge variant={getStatusColor(task.status)}>
-                    {getStatusName(task.status)}
-                  </Badge>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="flex items-center gap-2 text-sm">
+                  <Icon name="Calendar" size={16} className="text-muted-foreground" />
+                  <span className="text-muted-foreground">Срок:</span>
+                  <span>{formatDate(task.dueDate)}</span>
                 </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="flex flex-wrap gap-2">
-                {task.status !== 'completed' && (
-                  <>
-                    {task.status === 'pending' && (
-                      <Button 
-                        size="sm" 
-                        variant="secondary"
-                        className="gap-2"
-                        onClick={() => handleStatusChange(task.id, 'in_progress')}
-                      >
-                        <Icon name="Play" size={14} />
-                        Начать работу
-                      </Button>
-                    )}
-                    {task.status === 'in_progress' && (
-                      <Button 
-                        size="sm" 
-                        variant="default"
-                        className="gap-2"
-                        onClick={() => handleStatusChange(task.id, 'completed')}
-                      >
-                        <Icon name="CheckCircle" size={14} />
-                        Завершить
-                      </Button>
-                    )}
-                  </>
+                
+                {task.assignedToUsers.length > 0 && (
+                  <div className="flex items-start gap-2 text-sm">
+                    <Icon name="User" size={16} className="text-muted-foreground mt-0.5" />
+                    <div className="flex-1">
+                      <span className="text-muted-foreground">Исполнители:</span>
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {task.assignedToUsers.map(userName => (
+                          <Badge key={userName} variant="outline">
+                            {userName}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
                 )}
-                {canManage && (
-                  <>
-                    <Button 
-                      size="sm" 
-                      variant="outline"
-                      className="gap-2"
-                      onClick={() => openEditDialog(task)}
-                    >
-                      <Icon name="Edit" size={14} />
-                      Редактировать
-                    </Button>
-                    <Button 
-                      size="sm" 
-                      variant="destructive"
-                      className="gap-2"
-                      onClick={() => setDeleteTaskId(task.id)}
-                    >
-                      <Icon name="Trash2" size={14} />
-                      Удалить
-                    </Button>
-                  </>
+
+                {task.assignedToPositions.length > 0 && (
+                  <div className="flex items-start gap-2 text-sm">
+                    <Icon name="Briefcase" size={16} className="text-muted-foreground mt-0.5" />
+                    <div className="flex-1">
+                      <span className="text-muted-foreground">Должности:</span>
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {task.assignedToPositions.map(position => (
+                          <Badge key={position} variant="outline">
+                            {getPositionName(position)}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
                 )}
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+
+                <div className="flex items-center gap-2 pt-2 border-t">
+                  <Select
+                    value={task.status}
+                    onValueChange={(v) => handleStatusChange(task.id, v as Task['status'])}
+                  >
+                    <SelectTrigger className="w-[150px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="pending">Ожидает</SelectItem>
+                      <SelectItem value="in_progress">В работе</SelectItem>
+                      <SelectItem value="completed">Выполнено</SelectItem>
+                    </SelectContent>
+                  </Select>
+
+                  {canManage && (
+                    <div className="ml-auto flex gap-2">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => openEditDialog(task)}
+                      >
+                        <Icon name="Pencil" size={16} />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setDeleteTaskId(task.id)}
+                      >
+                        <Icon name="Trash2" size={16} />
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          ))
+        )}
       </div>
 
       <AlertDialog open={deleteTaskId !== null} onOpenChange={(open) => !open && setDeleteTaskId(null)}>
@@ -526,7 +547,7 @@ export const CouncilTasksPanel = ({ canManage, userName, councilMembers }: Counc
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Отмена</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteTask} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+            <AlertDialogAction onClick={() => deleteTaskId && handleDeleteTask(deleteTaskId)}>
               Удалить
             </AlertDialogAction>
           </AlertDialogFooter>
