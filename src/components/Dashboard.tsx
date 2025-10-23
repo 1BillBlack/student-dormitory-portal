@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -24,6 +24,7 @@ import { CleanlinessPanel } from '@/components/CleanlinessPanel';
 import { UserManagementDialog } from '@/components/UserManagementDialog';
 import { useToast } from '@/hooks/use-toast';
 import { UserPosition } from '@/types/auth';
+import { getPositionName } from '@/utils/positions';
 
 type TabType = 'announcements' | 'duties' | 'cleanliness' | 'users' | 'council' | 'profile';
 
@@ -51,7 +52,10 @@ const formatDate = (dateStr: string): string => {
 
 
 export const Dashboard = () => {
-  const [activeTab, setActiveTab] = useState<TabType>('announcements');
+  const [activeTab, setActiveTab] = useState<TabType>(() => {
+    const savedTab = localStorage.getItem('activeTab');
+    return (savedTab as TabType) || 'announcements';
+  });
   const [announcements, setAnnouncements] = useState(initialAnnouncements);
   const [editingAnnouncement, setEditingAnnouncement] = useState<typeof initialAnnouncements[0] | null>(null);
   const [deletingId, setDeletingId] = useState<number | null>(null);
@@ -59,11 +63,17 @@ export const Dashboard = () => {
   const { users, updateUser, deleteUser, createUser, updateUserPositions } = useUsers();
   const { toast } = useToast();
 
+  useEffect(() => {
+    localStorage.setItem('activeTab', activeTab);
+  }, [activeTab]);
+
   const canManageAnnouncements = ['manager', 'admin', 'moderator'].includes(user?.role || '');
   const canManageUsers = ['manager', 'admin', 'moderator'].includes(user?.role || '');
   const hasCouncilAccess = 
     ['manager', 'admin', 'moderator'].includes(user?.role || '') ||
     (user?.positions && user.positions.length > 0);
+  const canSeeCleanlinessTab = 
+    ['manager', 'admin', 'moderator'].includes(user?.role || '') || user?.room;
 
   const handleDeleteUser = (userId: string) => {
     deleteUser(userId);
@@ -153,15 +163,20 @@ export const Dashboard = () => {
       <main className="container mx-auto px-4 py-8">
         <div className="mb-6 animate-fade-in">
           <h2 className="text-2xl font-bold mb-2">Добро пожаловать, {user?.name}!</h2>
-          <p className="text-muted-foreground">Комната {user?.room} • {getRoleName(user?.role || '')}</p>
+          <p className="text-muted-foreground">{user?.room ? `Комната ${user.room} • ` : ''}{getRoleName(user?.role || '')}</p>
         </div>
 
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as TabType)} className="animate-fade-in">
-          <TabsList className={`grid w-full mb-6 h-auto p-1 ${
-            canManageUsers && hasCouncilAccess ? 'grid-cols-5' : 
-            canManageUsers || hasCouncilAccess ? 'grid-cols-4' : 
-            'grid-cols-3'
-          }`}>
+          <TabsList className={`grid w-full mb-6 h-auto p-1`} style={{
+            gridTemplateColumns: `repeat(${[
+              true,
+              true,
+              true,
+              canSeeCleanlinessTab,
+              hasCouncilAccess,
+              canManageUsers
+            ].filter(Boolean).length}, minmax(0, 1fr))`
+          }}>
             <TabsTrigger value="announcements" className="gap-2 py-3">
               <Icon name="Megaphone" size={18} />
               <span className="hidden sm:inline">Объявления</span>
@@ -174,10 +189,12 @@ export const Dashboard = () => {
               <Icon name="ClipboardList" size={18} />
               <span className="hidden sm:inline">Отработки</span>
             </TabsTrigger>
-            <TabsTrigger value="cleanliness" className="gap-2 py-3">
-              <Icon name="Sparkles" size={18} />
-              <span className="hidden sm:inline">Чистота</span>
-            </TabsTrigger>
+            {canSeeCleanlinessTab && (
+              <TabsTrigger value="cleanliness" className="gap-2 py-3">
+                <Icon name="Sparkles" size={18} />
+                <span className="hidden sm:inline">Чистота</span>
+              </TabsTrigger>
+            )}
             {hasCouncilAccess && (
               <TabsTrigger value="council" className="gap-2 py-3">
                 <Icon name="Award" size={18} />
@@ -291,9 +308,11 @@ export const Dashboard = () => {
             ))}
           </TabsContent>
 
-          <TabsContent value="cleanliness" className="space-y-4">
-            <CleanlinessPanel currentUser={user!} users={users} />
-          </TabsContent>
+          {canSeeCleanlinessTab && (
+            <TabsContent value="cleanliness" className="space-y-4">
+              <CleanlinessPanel currentUser={user!} users={users} />
+            </TabsContent>
+          )}
 
           {canManageUsers && (
             <TabsContent value="users" className="space-y-4">
@@ -356,15 +375,15 @@ export const Dashboard = () => {
                     </div>
                   </div>
                   {user?.positions && user.positions.length > 0 && (
-                    <div className="flex items-center gap-2">
-                      <Icon name="Briefcase" size={18} className="text-muted-foreground" />
-                      <div>
+                    <div className="flex items-start gap-2">
+                      <Icon name="Briefcase" size={18} className="text-muted-foreground mt-0.5" />
+                      <div className="flex-1">
                         <p className="text-sm text-muted-foreground">Должности</p>
-                        <div className="flex flex-wrap gap-1 mt-1">
+                        <div className="flex flex-col gap-1 mt-1">
                           {user.positions.map(pos => (
-                            <Badge key={pos} variant="outline">
-                              {pos}
-                            </Badge>
+                            <span key={pos} className="text-sm">
+                              {getPositionName(pos)}
+                            </span>
                           ))}
                         </div>
                       </div>
