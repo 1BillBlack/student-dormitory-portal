@@ -21,14 +21,20 @@ interface UserManagementDialogProps {
   onOpenChange: (open: boolean) => void;
   onSave: (user: User) => void;
   mode: 'create' | 'edit';
+  currentUserRole: UserRole;
 }
 
-export const UserManagementDialog = ({ user, open, onOpenChange, onSave, mode }: UserManagementDialogProps) => {
+export const UserManagementDialog = ({ user, open, onOpenChange, onSave, mode, currentUserRole }: UserManagementDialogProps) => {
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
   const [role, setRole] = useState<UserRole>('member');
   const [room, setRoom] = useState('');
+  const [newPassword, setNewPassword] = useState('');
   const { toast } = useToast();
+
+  const canResetPassword = (): boolean => {
+    return ['manager', 'admin', 'moderator'].includes(currentUserRole);
+  };
 
   useEffect(() => {
     if (user && mode === 'edit') {
@@ -66,6 +72,14 @@ export const UserManagementDialog = ({ user, open, onOpenChange, onSave, mode }:
     };
 
     onSave(userData);
+
+    if (mode === 'edit' && newPassword && canResetPassword()) {
+      toast({
+        title: 'Пароль сброшен',
+        description: `Новый пароль для ${name}: ${newPassword}`,
+      });
+      setNewPassword('');
+    }
     
     toast({
       title: 'Успешно!',
@@ -128,8 +142,7 @@ export const UserManagementDialog = ({ user, open, onOpenChange, onSave, mode }:
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="member">{getRoleName('member')}</SelectItem>
-                  <SelectItem value="vice_chairman">{getRoleName('vice_chairman')}</SelectItem>
-                  <SelectItem value="chairman">{getRoleName('chairman')}</SelectItem>
+                  <SelectItem value="moderator">{getRoleName('moderator')}</SelectItem>
                   <SelectItem value="admin">{getRoleName('admin')}</SelectItem>
                   <SelectItem value="manager">{getRoleName('manager')}</SelectItem>
                 </SelectContent>
@@ -144,6 +157,33 @@ export const UserManagementDialog = ({ user, open, onOpenChange, onSave, mode }:
                 onChange={(e) => setRoom(e.target.value)}
               />
             </div>
+            {mode === 'edit' && canResetPassword() && (
+              <div className="space-y-2 pt-4 border-t">
+                <Label htmlFor="user-password">Новый пароль</Label>
+                <div className="flex gap-2">
+                  <Input
+                    id="user-password"
+                    type="password"
+                    placeholder="Оставьте пустым, чтобы не менять"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                  />
+                  {newPassword && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setNewPassword('')}
+                    >
+                      <Icon name="X" size={16} />
+                    </Button>
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Укажите новый пароль, чтобы сбросить пароль пользователя
+                </p>
+              </div>
+            )}
           </div>
           <DialogFooter>
             <Button type="submit" className="gap-2">

@@ -121,8 +121,7 @@ export const LoginForm = () => {
               <div className="space-y-0.5 font-mono">
                 <div>manager@dorm.ru - Менеджер</div>
                 <div>admin@dorm.ru - Администратор</div>
-                <div>chairman@dorm.ru - Председатель</div>
-                <div>vice@dorm.ru - Заместитель</div>
+                <div>moderator@dorm.ru - Модератор</div>
                 <div>member@dorm.ru - Участник</div>
               </div>
             </AlertDescription>

@@ -174,6 +174,7 @@ export const UsersPanel = ({ users, currentUser, onUpdateUser, onDeleteUser, onC
           setEditingUser(null);
         }}
         mode="edit"
+        currentUserRole={currentUser.role}
       />
 
       <UserManagementDialog
@@ -185,6 +186,7 @@ export const UsersPanel = ({ users, currentUser, onUpdateUser, onDeleteUser, onC
           setCreatingUser(false);
         }}
         mode="create"
+        currentUserRole={currentUser.role}
       />
 
       <PositionsDialog

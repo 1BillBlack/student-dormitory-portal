@@ -39,10 +39,15 @@ interface ClosedRooms {
   [date: string]: string[];
 }
 
+interface ClosedFloors {
+  [date: string]: number[];
+}
+
 interface CleanlinessSettings {
   rooms: RoomsList;
   workingDays: WorkingDays;
   closedRooms: ClosedRooms;
+  closedFloors: ClosedFloors;
   defaultNonWorkingDays: number[];
 }
 
@@ -176,6 +181,7 @@ export const CleanlinessPanel = ({ currentUser, users }: CleanlinesPanelProps) =
     },
     workingDays: {},
     closedRooms: {},
+    closedFloors: {},
     defaultNonWorkingDays: [5, 6, 7],
   });
 
@@ -211,6 +217,10 @@ export const CleanlinessPanel = ({ currentUser, users }: CleanlinesPanelProps) =
 
   const canManageSettings = (): boolean => {
     return ['manager', 'admin', 'moderator'].includes(currentUser.role);
+  };
+
+  const canCloseFloors = (): boolean => {
+    return ['manager', 'admin'].includes(currentUser.role);
   };
 
   const canEditAnyFloor = (): boolean => {
@@ -359,7 +369,39 @@ export const CleanlinessPanel = ({ currentUser, users }: CleanlinesPanelProps) =
   };
 
   const isRoomClosed = (date: string, room: string): boolean => {
-    return settings.closedRooms[date]?.includes(room) || false;
+    const floor = getFloorFromRoom(room);
+    const floorClosed = settings.closedFloors[date]?.includes(floor) || false;
+    return floorClosed || settings.closedRooms[date]?.includes(room) || false;
+  };
+
+  const toggleFloorClosed = (date: string, floor: number) => {
+    const newSettings = { ...settings };
+    
+    if (!newSettings.closedFloors[date]) {
+      newSettings.closedFloors[date] = [];
+    }
+    
+    const isCurrentlyClosed = newSettings.closedFloors[date].includes(floor);
+    
+    if (isCurrentlyClosed) {
+      newSettings.closedFloors[date] = newSettings.closedFloors[date].filter(f => f !== floor);
+      if (newSettings.closedFloors[date].length === 0) {
+        delete newSettings.closedFloors[date];
+      }
+    } else {
+      newSettings.closedFloors[date].push(floor);
+    }
+    
+    saveSettings(newSettings);
+    
+    toast({
+      title: isCurrentlyClosed ? 'Этаж открыт' : 'Этаж закрыт',
+      description: `${floor} этаж ${isCurrentlyClosed ? 'открыт' : 'закрыт'} для проверки ${date}`,
+    });
+  };
+
+  const isFloorClosed = (date: string, floor: number): boolean => {
+    return settings.closedFloors[date]?.includes(floor) || false;
   };
 
   const dates = viewMode === 'week' ? getWeekDates(periodOffset) : getMonthDates(periodOffset);
@@ -557,11 +599,34 @@ export const CleanlinessPanel = ({ currentUser, users }: CleanlinesPanelProps) =
                     </th>
                     {dates.map(date => {
                       const working = isWorkingDay(date, settings);
+                      const floorClosed = selectedFloor ? isFloorClosed(date, selectedFloor) : false;
+                      const dateObj = new Date(date);
+                      const dayOfWeek = dateObj.getDay();
+                      const isMonday = dayOfWeek === 1;
+                      
                       return (
-                        <th key={date} className={`border p-2 text-center font-semibold min-w-[80px] ${!working ? 'bg-gray-200' : ''}`}>
+                        <th key={date} className={`border p-2 text-center font-semibold min-w-[80px] relative group ${
+                          !working ? 'bg-gray-200' : 
+                          isMonday ? 'bg-purple-100' : ''
+                        }`}>
                           <div className="whitespace-pre-line text-xs leading-tight">
                             {formatDate(date)}
+                            {isMonday && <div className="text-[10px] text-purple-700 font-bold mt-0.5">Ген. уборка</div>}
                           </div>
+                          {canCloseFloors() && editMode && working && selectedFloor && (
+                            <button
+                              onClick={() => toggleFloorClosed(date, selectedFloor)}
+                              className="absolute top-1 right-1 p-0.5 opacity-0 group-hover:opacity-100 transition-opacity bg-white rounded border shadow-sm"
+                              title={floorClosed ? `Открыть ${selectedFloor} этаж` : `Закрыть ${selectedFloor} этаж`}
+                            >
+                              <Icon name={floorClosed ? 'Unlock' : 'Lock'} size={12} className="text-orange-600" />
+                            </button>
+                          )}
+                          {floorClosed && (
+                            <div className="absolute top-1 left-1">
+                              <Icon name="Lock" size={12} className="text-orange-600" />
+                            </div>
+                          )}
                         </th>
                       );
                     })}

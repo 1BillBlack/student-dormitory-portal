@@ -100,8 +100,7 @@ export const Dashboard = () => {
     const roles = {
       manager: 'Менеджер',
       admin: 'Администратор',
-      chairman: 'Председатель студсовета',
-      vice_chairman: 'Заместитель председателя',
+      moderator: 'Модератор',
       member: 'Участник',
     };
     return roles[role as keyof typeof roles] || role;
