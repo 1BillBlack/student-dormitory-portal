@@ -313,6 +313,28 @@ export const CleanlinessPanel = ({ currentUser, users }: CleanlinesPanelProps) =
     return isFloorHead || isFloorCleanliness;
   };
 
+  const canEditCell = (floor: number, date: string, room: string): boolean => {
+    // Администраторы могут редактировать всё
+    if (canEditAnyFloor()) return true;
+    
+    // Проверяем права на этаж
+    if (!canEditFloor(floor)) return false;
+    
+    const scoreData = getScore(floor, date, room);
+    const today = new Date().toISOString().split('T')[0];
+    const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+    
+    // Если оценка уже выставлена
+    if (scoreData) {
+      // Можно редактировать только сегодняшние оценки
+      return date === today;
+    }
+    
+    // Если оценки нет (прочерк)
+    // Можно выставить только за вчера или сегодня
+    return date === today || date === yesterday;
+  };
+
   const handleScoreChange = (floor: number, date: string, room: string, score: string) => {
     const newData = { ...data };
     
@@ -744,9 +766,11 @@ export const CleanlinessPanel = ({ currentUser, users }: CleanlinesPanelProps) =
                             );
                           }
                           
+                          const cellEditable = canEditCell(selectedFloor, date, room);
+                          
                           return (
                             <td key={date} className="border p-1 relative group">
-                              {editMode ? (
+                              {editMode && cellEditable ? (
                                 <>
                                   <Select 
                                     value={scoreData?.score?.toString() || ''} 
