@@ -32,12 +32,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const login = async (email: string, password: string, rememberMe: boolean) => {
-    const mockUser: User = {
-      id: '1',
+    const testAccounts: Record<string, User> = {
+      'manager@dorm.ru': { id: '1', email: 'manager@dorm.ru', name: 'Алексей Менеджеров', role: 'manager', room: '101' },
+      'admin@dorm.ru': { id: '2', email: 'admin@dorm.ru', name: 'Мария Администраторова', role: 'admin', room: '205' },
+      'chairman@dorm.ru': { id: '3', email: 'chairman@dorm.ru', name: 'Иван Председателев', role: 'chairman', room: '310' },
+      'vice@dorm.ru': { id: '4', email: 'vice@dorm.ru', name: 'Елена Заместителева', role: 'vice_chairman', room: '415' },
+      'member@dorm.ru': { id: '5', email: 'member@dorm.ru', name: 'Петр Участников', role: 'member', room: '520' },
+    };
+
+    const mockUser: User = testAccounts[email] || {
+      id: '6',
       email,
-      name: 'Иван Петров',
-      role: 'admin',
-      room: '305',
+      name: email.split('@')[0],
+      role: 'member',
+      room: '999',
     };
 
     setAuthState({

@@ -3,9 +3,21 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import Icon from '@/components/ui/icon';
 import { useAuth } from '@/contexts/AuthContext';
 import { CreateAnnouncementDialog } from '@/components/CreateAnnouncementDialog';
+import { EditAnnouncementDialog } from '@/components/EditAnnouncementDialog';
+import { useToast } from '@/hooks/use-toast';
 
 type TabType = 'announcements' | 'duties' | 'cleanliness';
 
@@ -30,9 +42,12 @@ const mockCleanliness = [
 export const Dashboard = () => {
   const [activeTab, setActiveTab] = useState<TabType>('announcements');
   const [announcements, setAnnouncements] = useState(initialAnnouncements);
+  const [editingAnnouncement, setEditingAnnouncement] = useState<typeof initialAnnouncements[0] | null>(null);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
   const { user, logout } = useAuth();
+  const { toast } = useToast();
 
-  const canCreateAnnouncements = ['manager', 'admin', 'chairman', 'vice_chairman'].includes(user?.role || '');
+  const canManageAnnouncements = ['manager', 'admin', 'chairman', 'vice_chairman'].includes(user?.role || '');
 
   const handleAddAnnouncement = (announcement: { title: string; content: string; priority: string; date: string }) => {
     const newAnnouncement = {
@@ -40,6 +55,21 @@ export const Dashboard = () => {
       ...announcement,
     };
     setAnnouncements([newAnnouncement, ...announcements]);
+  };
+
+  const handleEditAnnouncement = (id: number, updatedData: { title: string; content: string; priority: string }) => {
+    setAnnouncements(announcements.map(a => 
+      a.id === id ? { ...a, ...updatedData } : a
+    ));
+  };
+
+  const handleDeleteAnnouncement = (id: number) => {
+    setAnnouncements(announcements.filter(a => a.id !== id));
+    setDeletingId(null);
+    toast({
+      title: 'Удалено',
+      description: 'Объявление успешно удалено',
+    });
   };
 
   const getRoleName = (role: string) => {
@@ -117,7 +147,7 @@ export const Dashboard = () => {
           </TabsList>
 
           <TabsContent value="announcements" className="space-y-4">
-            {canCreateAnnouncements && (
+            {canManageAnnouncements && (
               <div className="mb-6 flex justify-end">
                 <CreateAnnouncementDialog onAdd={handleAddAnnouncement} />
               </div>
@@ -133,9 +163,29 @@ export const Dashboard = () => {
                         {announcement.date}
                       </CardDescription>
                     </div>
-                    <Badge variant={getPriorityColor(announcement.priority)}>
-                      {announcement.priority === 'high' ? 'Важно' : 'Обычное'}
-                    </Badge>
+                    <div className="flex items-center gap-2">
+                      <Badge variant={getPriorityColor(announcement.priority)}>
+                        {announcement.priority === 'high' ? 'Важно' : 'Обычное'}
+                      </Badge>
+                      {canManageAnnouncements && (
+                        <div className="flex gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => setEditingAnnouncement(announcement)}
+                          >
+                            <Icon name="Pencil" size={16} />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => setDeletingId(announcement.id)}
+                          >
+                            <Icon name="Trash2" size={16} className="text-destructive" />
+                          </Button>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </CardHeader>
                 <CardContent>
@@ -143,6 +193,30 @@ export const Dashboard = () => {
                 </CardContent>
               </Card>
             ))}
+            
+            <EditAnnouncementDialog
+              announcement={editingAnnouncement}
+              open={!!editingAnnouncement}
+              onOpenChange={(open) => !open && setEditingAnnouncement(null)}
+              onEdit={handleEditAnnouncement}
+            />
+            
+            <AlertDialog open={!!deletingId} onOpenChange={(open) => !open && setDeletingId(null)}>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Удалить объявление?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Это действие нельзя отменить. Объявление будет удалено навсегда.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Отмена</AlertDialogCancel>
+                  <AlertDialogAction onClick={() => deletingId && handleDeleteAnnouncement(deletingId)}>
+                    Удалить
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </TabsContent>
 
           <TabsContent value="duties" className="space-y-4">

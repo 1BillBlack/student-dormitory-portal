@@ -116,8 +116,15 @@ export const LoginForm = () => {
           </form>
           <Alert className="mt-4 border-primary/20 bg-primary/5">
             <Icon name="Info" size={16} className="text-primary" />
-            <AlertDescription className="text-sm ml-2">
-              <strong>Тестовый вход:</strong> Любая почта и пароль
+            <AlertDescription className="text-xs ml-2">
+              <strong className="block mb-1">Тестовые аккаунты (любой пароль):</strong>
+              <div className="space-y-0.5 font-mono">
+                <div>manager@dorm.ru - Менеджер</div>
+                <div>admin@dorm.ru - Администратор</div>
+                <div>chairman@dorm.ru - Председатель</div>
+                <div>vice@dorm.ru - Заместитель</div>
+                <div>member@dorm.ru - Участник</div>
+              </div>
             </AlertDescription>
           </Alert>
         </CardContent>
