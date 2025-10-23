@@ -63,6 +63,7 @@ export const CouncilTasksPanel = ({ canManage, userName, councilMembers }: Counc
   const [assignedToPositions, setAssignedToPositions] = useState<UserPosition[]>([]);
   const [priority, setPriority] = useState<'low' | 'medium' | 'high'>('medium');
   const [dueDate, setDueDate] = useState('');
+  const [filterStatus, setFilterStatus] = useState<'all' | Task['status']>('all');
   const { toast } = useToast();
 
   const allPositions: UserPosition[] = getAllPositions();
@@ -257,9 +258,21 @@ export const CouncilTasksPanel = ({ canManage, userName, councilMembers }: Counc
     return `${day}.${month}.${year}`;
   };
 
+  const formatDateTime = (dateString: string) => {
+    const date = new Date(dateString);
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    return `${day}.${month}.${year} в ${hours}:${minutes}`;
+  };
+
+  const filteredTasks = filterStatus === 'all' ? tasks : tasks.filter(t => t.status === filterStatus);
+
   return (
     <div className="space-y-4">
-      <div className="flex justify-between items-center">
+      <div className="flex justify-between items-center mb-4">
         <div>
           <h3 className="text-lg font-semibold">Задачи студсовета</h3>
           <p className="text-sm text-muted-foreground">
@@ -428,8 +441,26 @@ export const CouncilTasksPanel = ({ canManage, userName, councilMembers }: Counc
         )}
       </div>
 
+      <div className="flex items-center gap-2 mb-4">
+        <Label className="text-sm">Фильтр:</Label>
+        <Select value={filterStatus} onValueChange={(v) => setFilterStatus(v as typeof filterStatus)}>
+          <SelectTrigger className="w-[180px]">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Все задачи</SelectItem>
+            <SelectItem value="pending">Ожидает</SelectItem>
+            <SelectItem value="in_progress">В работе</SelectItem>
+            <SelectItem value="completed">Выполнено</SelectItem>
+          </SelectContent>
+        </Select>
+        <span className="text-sm text-muted-foreground ml-2">
+          {filteredTasks.length} {filteredTasks.length === 1 ? 'задача' : filteredTasks.length < 5 ? 'задачи' : 'задач'}
+        </span>
+      </div>
+
       <div className="space-y-3">
-        {tasks.length === 0 ? (
+        {filteredTasks.length === 0 ? (
           <Card>
             <CardContent className="py-8">
               <p className="text-center text-muted-foreground">
@@ -438,7 +469,7 @@ export const CouncilTasksPanel = ({ canManage, userName, councilMembers }: Counc
             </CardContent>
           </Card>
         ) : (
-          tasks.map(task => (
+          filteredTasks.map(task => (
             <Card key={task.id}>
               <CardHeader>
                 <div className="flex items-start justify-between gap-4">
@@ -463,6 +494,12 @@ export const CouncilTasksPanel = ({ canManage, userName, councilMembers }: Counc
                   <Icon name="Calendar" size={16} className="text-muted-foreground" />
                   <span className="text-muted-foreground">Срок:</span>
                   <span>{formatDate(task.dueDate)}</span>
+                </div>
+
+                <div className="flex items-center gap-2 text-sm">
+                  <Icon name="Clock" size={16} className="text-muted-foreground" />
+                  <span className="text-muted-foreground">Создано:</span>
+                  <span>{formatDateTime(task.createdAt)}</span>
                 </div>
                 
                 {task.assignedToUsers.length > 0 && (

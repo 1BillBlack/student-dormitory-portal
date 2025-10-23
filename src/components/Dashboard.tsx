@@ -18,7 +18,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useUsers } from '@/contexts/UsersContext';
 import { CreateAnnouncementDialog } from '@/components/CreateAnnouncementDialog';
 import { EditAnnouncementDialog } from '@/components/EditAnnouncementDialog';
-import { UsersPanel } from '@/components/UsersPanel';
+import { AdminPanel } from '@/components/AdminPanel';
 import { CouncilPanel } from '@/components/CouncilPanel';
 import { CleanlinessPanel } from '@/components/CleanlinessPanel';
 import { UserManagementDialog } from '@/components/UserManagementDialog';
@@ -26,7 +26,7 @@ import { useToast } from '@/hooks/use-toast';
 import { UserPosition } from '@/types/auth';
 import { getPositionName } from '@/utils/positions';
 
-type TabType = 'announcements' | 'duties' | 'cleanliness' | 'users' | 'council' | 'profile';
+type TabType = 'announcements' | 'duties' | 'cleanliness' | 'admin' | 'council' | 'profile';
 
 
 
@@ -202,9 +202,9 @@ export const Dashboard = () => {
               </TabsTrigger>
             )}
             {canManageUsers && (
-              <TabsTrigger value="users" className="gap-2 py-3">
-                <Icon name="Users" size={18} />
-                <span className="hidden sm:inline">Пользователи</span>
+              <TabsTrigger value="admin" className="gap-2 py-3">
+                <Icon name="Settings" size={18} />
+                <span className="hidden sm:inline">Админ-панель</span>
               </TabsTrigger>
             )}
           </TabsList>
@@ -315,8 +315,8 @@ export const Dashboard = () => {
           )}
 
           {canManageUsers && (
-            <TabsContent value="users" className="space-y-4">
-              <UsersPanel
+            <TabsContent value="admin" className="space-y-4">
+              <AdminPanel
                 users={users}
                 currentUser={user!}
                 onUpdateUser={updateUser}
