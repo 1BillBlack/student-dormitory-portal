@@ -4,6 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import Icon from '@/components/ui/icon';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -34,9 +35,9 @@ export const LoginForm = () => {
           <div className="mx-auto w-16 h-16 bg-primary rounded-2xl flex items-center justify-center mb-4 shadow-lg">
             <Icon name="Home" size={32} className="text-primary-foreground" />
           </div>
-          <CardTitle className="text-3xl font-bold">Студенческий портал</CardTitle>
+          <CardTitle className="text-3xl font-bold">Общежитие</CardTitle>
           <CardDescription className="text-base">
-            Войдите в систему управления общежитием
+            Введите электронную почту и пароль для авторизации
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -91,7 +92,7 @@ export const LoginForm = () => {
                 htmlFor="remember"
                 className="text-sm font-normal cursor-pointer"
               >
-                Запомнить меня на месяц
+                Запомнить меня
               </Label>
             </div>
 
@@ -113,6 +114,12 @@ export const LoginForm = () => {
               )}
             </Button>
           </form>
+          <Alert className="mt-4 border-primary/20 bg-primary/5">
+            <Icon name="Info" size={16} className="text-primary" />
+            <AlertDescription className="text-sm ml-2">
+              <strong>Тестовый вход:</strong> Любая почта и пароль
+            </AlertDescription>
+          </Alert>
         </CardContent>
       </Card>
     </div>

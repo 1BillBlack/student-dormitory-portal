@@ -5,10 +5,11 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Icon from '@/components/ui/icon';
 import { useAuth } from '@/contexts/AuthContext';
+import { CreateAnnouncementDialog } from '@/components/CreateAnnouncementDialog';
 
 type TabType = 'announcements' | 'duties' | 'cleanliness';
 
-const mockAnnouncements = [
+const initialAnnouncements = [
   { id: 1, title: 'Собрание студсовета', date: '2025-10-25', content: 'Приглашаем всех на общее собрание в актовом зале', priority: 'high' },
   { id: 2, title: 'График дежурств на ноябрь', date: '2025-10-24', content: 'Опубликован новый график дежурств. Проверьте свои даты!', priority: 'medium' },
   { id: 3, title: 'Техническое обслуживание', date: '2025-10-23', content: 'Завтра будет отключена вода с 10:00 до 14:00', priority: 'high' },
@@ -28,7 +29,18 @@ const mockCleanliness = [
 
 export const Dashboard = () => {
   const [activeTab, setActiveTab] = useState<TabType>('announcements');
+  const [announcements, setAnnouncements] = useState(initialAnnouncements);
   const { user, logout } = useAuth();
+
+  const canCreateAnnouncements = ['manager', 'admin', 'chairman', 'vice_chairman'].includes(user?.role || '');
+
+  const handleAddAnnouncement = (announcement: { title: string; content: string; priority: string; date: string }) => {
+    const newAnnouncement = {
+      id: announcements.length + 1,
+      ...announcement,
+    };
+    setAnnouncements([newAnnouncement, ...announcements]);
+  };
 
   const getRoleName = (role: string) => {
     const roles = {
@@ -105,7 +117,12 @@ export const Dashboard = () => {
           </TabsList>
 
           <TabsContent value="announcements" className="space-y-4">
-            {mockAnnouncements.map((announcement, index) => (
+            {canCreateAnnouncements && (
+              <div className="mb-6 flex justify-end">
+                <CreateAnnouncementDialog onAdd={handleAddAnnouncement} />
+              </div>
+            )}
+            {announcements.map((announcement, index) => (
               <Card key={announcement.id} className="animate-slide-in hover:shadow-lg transition-shadow" style={{ animationDelay: `${index * 100}ms` }}>
                 <CardHeader>
                   <div className="flex items-start justify-between gap-4">
