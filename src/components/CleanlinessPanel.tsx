@@ -407,6 +407,29 @@ export const CleanlinessPanel = ({ currentUser, users }: CleanlinesPanelProps) =
     });
   };
 
+  const handleScoreDelete = (floor: number, date: string, room: string) => {
+    const newData = { ...data };
+    
+    if (newData[floor]?.[date]?.[room]) {
+      delete newData[floor][date][room];
+      
+      // Очищаем пустые объекты
+      if (Object.keys(newData[floor][date]).length === 0) {
+        delete newData[floor][date];
+      }
+      if (Object.keys(newData[floor]).length === 0) {
+        delete newData[floor];
+      }
+      
+      saveData(newData);
+      
+      toast({
+        title: 'Оценка удалена',
+        description: `Комната ${room}`,
+      });
+    }
+  };
+
   const getScore = (floor: number, date: string, room: string): CleanlinessScore | undefined => {
     return data[floor]?.[date]?.[room];
   };
@@ -831,10 +854,19 @@ export const CleanlinessPanel = ({ currentUser, users }: CleanlinesPanelProps) =
                                       <SelectItem value="2">2</SelectItem>
                                     </SelectContent>
                                   </Select>
+                                  {scoreData && (
+                                    <button
+                                      onClick={() => handleScoreDelete(selectedFloor, date, room)}
+                                      className="absolute top-0.5 right-0.5 p-0.5 opacity-0 group-hover:opacity-100 transition-opacity bg-white rounded border shadow-sm hover:bg-red-50"
+                                      title="Удалить оценку"
+                                    >
+                                      <Icon name="X" size={14} className="text-red-600" />
+                                    </button>
+                                  )}
                                   {canManageSettings() && (
                                     <button
                                       onClick={() => toggleRoomClosed(date, room)}
-                                      className="absolute top-0 right-0 p-1 opacity-0 group-hover:opacity-100 transition-opacity bg-white rounded-bl border-l border-b"
+                                      className="absolute bottom-0.5 right-0.5 p-0.5 opacity-0 group-hover:opacity-100 transition-opacity bg-white rounded border shadow-sm"
                                       title="Закрыть комнату"
                                     >
                                       <Icon name="Lock" size={12} className="text-orange-600" />
