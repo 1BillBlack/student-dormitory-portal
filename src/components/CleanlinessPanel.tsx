@@ -219,6 +219,8 @@ export const CleanlinessPanel = ({ currentUser, users }: CleanlinesPanelProps) =
   const [roomsDialogOpen, setRoomsDialogOpen] = useState(false);
   const [newRoomNumber, setNewRoomNumber] = useState('');
   const [deleteScoreDialog, setDeleteScoreDialog] = useState<{floor: number, date: string, room: string} | null>(null);
+  const [statsRoom, setStatsRoom] = useState<string>('');
+  const [statsPeriod, setStatsPeriod] = useState<'week' | 'month' | 'all'>('week');
   const { toast } = useToast();
 
   const [settings, setSettings] = useState<CleanlinessSettings>({
@@ -579,8 +581,119 @@ export const CleanlinessPanel = ({ currentUser, users }: CleanlinesPanelProps) =
   const canEdit = selectedFloor ? canEditFloor(selectedFloor) : false;
   const showEditButton = canEdit && !editMode;
 
+  const canViewOtherStats = canEditAnyFloor();
+  const displayStatsRoom = statsRoom || '';
+  const statsRoomScores = displayStatsRoom ? getRoomScores(displayStatsRoom, statsPeriod) : [];
+  const todayStatsScore = displayStatsRoom ? getTodayRoomScore(displayStatsRoom) : undefined;
+  const avgStatsScore = statsRoomScores.length > 0 
+    ? Math.round((statsRoomScores.reduce((sum, s) => sum + s.score, 0) / statsRoomScores.length) * 10) / 10
+    : null;
+
   return (
     <div className="space-y-4">
+      {canViewOtherStats && (
+        <Card className="border-l-4 border-l-primary">
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <Icon name="Sparkles" size={20} />
+              Статистика комнаты
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex gap-2 items-center">
+              <Input
+                placeholder="Номер комнаты (например, 305)"
+                value={statsRoom}
+                onChange={(e) => setStatsRoom(e.target.value)}
+                className="max-w-[200px]"
+              />
+              {statsRoom && (
+                <Button variant="ghost" size="sm" onClick={() => setStatsRoom('')}>
+                  Сбросить
+                </Button>
+              )}
+            </div>
+            
+            <div className="flex gap-2">
+              <Button
+                variant={statsPeriod === 'week' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setStatsPeriod('week')}
+              >
+                Неделя
+              </Button>
+              <Button
+                variant={statsPeriod === 'month' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setStatsPeriod('month')}
+              >
+                Месяц
+              </Button>
+              <Button
+                variant={statsPeriod === 'all' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setStatsPeriod('all')}
+              >
+                Всё время
+              </Button>
+            </div>
+
+            {displayStatsRoom && (
+              <>
+                {todayStatsScore && (
+                  <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
+                    <div>
+                      <p className="text-sm font-medium mb-1">Оценка за сегодня</p>
+                      <p className="text-xs text-muted-foreground">Комната {displayStatsRoom} • {todayStatsScore.inspector}</p>
+                    </div>
+                    <div className={`px-6 py-3 rounded-lg border-2 ${getScoreColor(todayStatsScore.score)}`}>
+                      <div className="text-3xl font-bold text-center">{todayStatsScore.score}</div>
+                    </div>
+                  </div>
+                )}
+
+                {statsRoomScores.length > 0 && (
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
+                      <div>
+                        <p className="text-sm font-medium">Средний балл</p>
+                        <p className="text-xs text-muted-foreground">
+                          {statsPeriod === 'week' ? 'За неделю' : statsPeriod === 'month' ? 'За месяц' : 'За всё время'}
+                        </p>
+                      </div>
+                      <div className={`px-6 py-3 rounded-lg border-2 ${avgStatsScore ? getScoreColor(Math.round(avgStatsScore)) : 'bg-gray-50'}`}>
+                        <div className="text-3xl font-bold text-center">{avgStatsScore?.toFixed(1) || '—'}</div>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <p className="text-sm font-medium">История оценок:</p>
+                      <div className="space-y-1 max-h-[200px] overflow-y-auto">
+                        {statsRoomScores.slice().reverse().map((score, idx) => (
+                          <div key={idx} className="flex items-center justify-between p-2 bg-muted/30 rounded text-sm">
+                            <div className="flex items-center gap-2">
+                              <span className="text-muted-foreground">{formatDate(score.date)}</span>
+                              <span className="text-xs text-muted-foreground">• {score.inspector}</span>
+                            </div>
+                            <Badge className={getScoreColor(score.score)}>{score.score}</Badge>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {statsRoomScores.length === 0 && !todayStatsScore && (
+                  <p className="text-sm text-muted-foreground text-center py-4">
+                    Нет данных за выбранный период
+                  </p>
+                )}
+              </>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h3 className="text-lg font-semibold mb-1">Оценка чистоты комнат</h3>
