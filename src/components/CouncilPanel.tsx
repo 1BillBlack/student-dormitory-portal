@@ -16,8 +16,7 @@ export const CouncilPanel = ({ users, currentUser }: CouncilPanelProps) => {
   const [activeTab, setActiveTab] = useState<'members' | 'tasks'>('tasks');
   
   const councilMembers = users.filter(u => 
-    ['manager', 'admin', 'moderator'].includes(u.role) ||
-    (u.positions && u.positions.length > 0)
+    u.positions && u.positions.length > 0
   );
 
   const canManageTasks = ['manager', 'admin', 'moderator'].includes(currentUser.role);
