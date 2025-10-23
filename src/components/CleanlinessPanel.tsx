@@ -61,6 +61,14 @@ type ViewMode = 'week' | 'month';
 const STORAGE_KEY = 'cleanliness_data';
 const SETTINGS_KEY = 'cleanliness_settings';
 
+const formatDate = (dateStr: string): string => {
+  const date = new Date(dateStr);
+  const day = String(date.getDate()).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const year = date.getFullYear();
+  return `${day}.${month}.${year}`;
+};
+
 const getFloorFromRoom = (room: string): number => {
   return parseInt(room[0]);
 };

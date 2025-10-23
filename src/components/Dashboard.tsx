@@ -41,6 +41,13 @@ const mockDuties = [
   { id: 3, student: 'Алексей Иванов', room: '201', date: '2025-10-26', status: 'pending', task: 'Вынос мусора' },
 ];
 
+const formatDate = (dateStr: string): string => {
+  const date = new Date(dateStr);
+  const day = String(date.getDate()).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const year = date.getFullYear();
+  return `${day}.${month}.${year}`;
+};
 
 
 export const Dashboard = () => {
@@ -136,11 +143,6 @@ export const Dashboard = () => {
               <p className="text-sm font-medium">{user?.name}</p>
               <p className="text-xs text-muted-foreground">{getRoleName(user?.role || '')}</p>
             </div>
-            {user?.role === 'manager' && (
-              <Button variant="ghost" size="icon" onClick={() => setActiveTab('profile')} title="Настройки профиля">
-                <Icon name="Settings" size={20} />
-              </Button>
-            )}
             <Button variant="ghost" size="icon" onClick={logout}>
               <Icon name="LogOut" size={20} />
             </Button>
@@ -156,7 +158,6 @@ export const Dashboard = () => {
 
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as TabType)} className="animate-fade-in">
           <TabsList className={`grid w-full mb-6 h-auto p-1 ${
-            user?.role === 'manager' ? 'grid-cols-6' :
             canManageUsers && hasCouncilAccess ? 'grid-cols-5' : 
             canManageUsers || hasCouncilAccess ? 'grid-cols-4' : 
             'grid-cols-3'
@@ -164,6 +165,10 @@ export const Dashboard = () => {
             <TabsTrigger value="announcements" className="gap-2 py-3">
               <Icon name="Megaphone" size={18} />
               <span className="hidden sm:inline">Объявления</span>
+            </TabsTrigger>
+            <TabsTrigger value="profile" className="gap-2 py-3">
+              <Icon name="User" size={18} />
+              <span className="hidden sm:inline">Профиль</span>
             </TabsTrigger>
             <TabsTrigger value="duties" className="gap-2 py-3">
               <Icon name="ClipboardList" size={18} />
@@ -185,12 +190,6 @@ export const Dashboard = () => {
                 <span className="hidden sm:inline">Пользователи</span>
               </TabsTrigger>
             )}
-            {user?.role === 'manager' && (
-              <TabsTrigger value="profile" className="gap-2 py-3">
-                <Icon name="User" size={18} />
-                <span className="hidden sm:inline">Профиль</span>
-              </TabsTrigger>
-            )}
           </TabsList>
 
           <TabsContent value="announcements" className="space-y-4">
@@ -207,7 +206,7 @@ export const Dashboard = () => {
                       <CardTitle className="text-lg">{announcement.title}</CardTitle>
                       <CardDescription className="flex items-center gap-2 mt-1">
                         <Icon name="Calendar" size={14} />
-                        {announcement.date}
+                        {formatDate(announcement.date)}
                       </CardDescription>
                     </div>
                     <div className="flex items-center gap-2">
@@ -285,7 +284,7 @@ export const Dashboard = () => {
                 <CardContent>
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <Icon name="Calendar" size={14} />
-                    <span>Дата: {duty.date}</span>
+                    <span>Дата: {formatDate(duty.date)}</span>
                   </div>
                 </CardContent>
               </Card>
@@ -318,35 +317,63 @@ export const Dashboard = () => {
             </TabsContent>
           )}
 
-          {user?.role === 'manager' && (
-            <TabsContent value="profile" className="space-y-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Настройки профиля</CardTitle>
-                  <CardDescription>Редактирование личных данных</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <UserManagementDialog
-                    user={user}
-                    onSave={(updatedUser) => {
-                      updateUser(updatedUser);
-                      toast({
-                        title: 'Успешно!',
-                        description: 'Профиль обновлён',
-                      });
-                    }}
-                    canEditRole={false}
-                    trigger={
-                      <Button className="w-full">
-                        <Icon name="Pencil" size={18} className="mr-2" />
-                        Редактировать профиль
-                      </Button>
-                    }
-                  />
-                </CardContent>
-              </Card>
-            </TabsContent>
-          )}
+          <TabsContent value="profile" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Мой профиль</CardTitle>
+                <CardDescription>Информация о вашем аккаунте</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid gap-3">
+                  <div className="flex items-center gap-2">
+                    <Icon name="User" size={18} className="text-muted-foreground" />
+                    <div>
+                      <p className="text-sm text-muted-foreground">Имя</p>
+                      <p className="font-medium">{user?.name}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Icon name="Mail" size={18} className="text-muted-foreground" />
+                    <div>
+                      <p className="text-sm text-muted-foreground">Email</p>
+                      <p className="font-medium">{user?.email}</p>
+                    </div>
+                  </div>
+                  {user?.room && (
+                    <div className="flex items-center gap-2">
+                      <Icon name="Home" size={18} className="text-muted-foreground" />
+                      <div>
+                        <p className="text-sm text-muted-foreground">Комната</p>
+                        <p className="font-medium">{user.room}</p>
+                      </div>
+                    </div>
+                  )}
+                  <div className="flex items-center gap-2">
+                    <Icon name="Shield" size={18} className="text-muted-foreground" />
+                    <div>
+                      <p className="text-sm text-muted-foreground">Роль</p>
+                      <p className="font-medium">{getRoleName(user?.role || '')}</p>
+                    </div>
+                  </div>
+                  {user?.positions && user.positions.length > 0 && (
+                    <div className="flex items-center gap-2">
+                      <Icon name="Briefcase" size={18} className="text-muted-foreground" />
+                      <div>
+                        <p className="text-sm text-muted-foreground">Должности</p>
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {user.positions.map(pos => (
+                            <Badge key={pos} variant="outline">
+                              {pos}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
         </Tabs>
       </main>
     </div>
