@@ -20,6 +20,7 @@ import { CreateAnnouncementDialog } from '@/components/CreateAnnouncementDialog'
 import { EditAnnouncementDialog } from '@/components/EditAnnouncementDialog';
 import { UsersPanel } from '@/components/UsersPanel';
 import { CouncilPanel } from '@/components/CouncilPanel';
+import { CleanlinessPanel } from '@/components/CleanlinessPanel';
 import { useToast } from '@/hooks/use-toast';
 import { UserPosition } from '@/types/auth';
 
@@ -39,11 +40,7 @@ const mockDuties = [
   { id: 3, student: 'Алексей Иванов', room: '201', date: '2025-10-26', status: 'pending', task: 'Вынос мусора' },
 ];
 
-const mockCleanliness = [
-  { id: 1, floor: 3, area: 'Коридор', rating: 4.5, lastCheck: '2025-10-23', inspector: 'А.В. Смирнов' },
-  { id: 2, floor: 2, area: 'Кухня', rating: 3.8, lastCheck: '2025-10-23', inspector: 'Е.И. Петрова' },
-  { id: 3, floor: 4, area: 'Туалет', rating: 4.2, lastCheck: '2025-10-22', inspector: 'А.В. Смирнов' },
-];
+
 
 export const Dashboard = () => {
   const [activeTab, setActiveTab] = useState<TabType>('announcements');
@@ -118,12 +115,7 @@ export const Dashboard = () => {
     return status === 'completed' ? 'default' : 'secondary';
   };
 
-  const getRatingColor = (rating: number) => {
-    if (rating >= 4.5) return 'text-green-600';
-    if (rating >= 4.0) return 'text-blue-600';
-    if (rating >= 3.5) return 'text-yellow-600';
-    return 'text-orange-600';
-  };
+
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-secondary/5">
@@ -289,47 +281,7 @@ export const Dashboard = () => {
           </TabsContent>
 
           <TabsContent value="cleanliness" className="space-y-4">
-            {mockCleanliness.map((record, index) => (
-              <Card key={record.id} className="animate-slide-in hover:shadow-lg transition-shadow" style={{ animationDelay: `${index * 100}ms` }}>
-                <CardHeader>
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex-1">
-                      <CardTitle className="text-lg">{record.area}</CardTitle>
-                      <CardDescription className="mt-1">
-                        {record.floor} этаж
-                      </CardDescription>
-                    </div>
-                    <div className="text-right">
-                      <div className={`text-2xl font-bold ${getRatingColor(record.rating)}`}>
-                        {record.rating}
-                      </div>
-                      <div className="flex items-center gap-1 text-yellow-500">
-                        {[...Array(5)].map((_, i) => (
-                          <Icon 
-                            key={i} 
-                            name={i < Math.floor(record.rating) ? "Star" : "StarOff"} 
-                            size={14} 
-                            className="fill-current"
-                          />
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-1 text-sm text-muted-foreground">
-                    <div className="flex items-center gap-2">
-                      <Icon name="Calendar" size={14} />
-                      <span>Последняя проверка: {record.lastCheck}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Icon name="User" size={14} />
-                      <span>Проверяющий: {record.inspector}</span>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+            <CleanlinessPanel currentUser={user!} users={users} />
           </TabsContent>
 
           {canManageUsers && (

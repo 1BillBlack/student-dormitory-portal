@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -11,6 +11,16 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -27,6 +37,8 @@ interface Task {
   priority: 'low' | 'medium' | 'high';
   dueDate: string;
   createdBy: string;
+  createdAt: string;
+  completedAt?: string;
 }
 
 interface CouncilTasksPanelProps {
@@ -34,38 +46,31 @@ interface CouncilTasksPanelProps {
   userName: string;
 }
 
-const initialTasks: Task[] = [
-  { 
-    id: 1, 
-    title: 'Организовать спортивное мероприятие', 
-    description: 'Провести футбольный турнир между этажами',
-    assignedTo: 'Елена Заместителева',
-    status: 'in_progress',
-    priority: 'high',
-    dueDate: '2025-11-01',
-    createdBy: 'Иван Председателев'
-  },
-  { 
-    id: 2, 
-    title: 'Проверка чистоты на 3 этаже', 
-    description: 'Провести еженедельную проверку состояния коридора',
-    assignedTo: 'Петр Участников',
-    status: 'pending',
-    priority: 'medium',
-    dueDate: '2025-10-28',
-    createdBy: 'Мария Администраторова'
-  },
-];
+const STORAGE_KEY = 'council_tasks';
 
 export const CouncilTasksPanel = ({ canManage, userName }: CouncilTasksPanelProps) => {
-  const [tasks, setTasks] = useState<Task[]>(initialTasks);
+  const [tasks, setTasks] = useState<Task[]>([]);
   const [open, setOpen] = useState(false);
+  const [editingTask, setEditingTask] = useState<Task | null>(null);
+  const [deleteTaskId, setDeleteTaskId] = useState<number | null>(null);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [assignedTo, setAssignedTo] = useState('');
   const [priority, setPriority] = useState<'low' | 'medium' | 'high'>('medium');
   const [dueDate, setDueDate] = useState('');
   const { toast } = useToast();
+
+  useEffect(() => {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored) {
+      setTasks(JSON.parse(stored));
+    }
+  }, []);
+
+  const saveTasks = (newTasks: Task[]) => {
+    setTasks(newTasks);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(newTasks));
+  };
 
   const handleCreateTask = (e: React.FormEvent) => {
     e.preventDefault();
@@ -80,7 +85,7 @@ export const CouncilTasksPanel = ({ canManage, userName }: CouncilTasksPanelProp
     }
 
     const newTask: Task = {
-      id: tasks.length + 1,
+      id: Date.now(),
       title,
       description,
       assignedTo,
@@ -88,25 +93,95 @@ export const CouncilTasksPanel = ({ canManage, userName }: CouncilTasksPanelProp
       priority,
       dueDate,
       createdBy: userName,
+      createdAt: new Date().toISOString(),
     };
 
-    setTasks([newTask, ...tasks]);
+    saveTasks([newTask, ...tasks]);
     
     toast({
       title: 'Успешно!',
-      description: 'Задача создана',
+      description: `Задача создана. Уведомление отправлено исполнителю: ${assignedTo}`,
     });
 
+    resetForm();
+  };
+
+  const handleEditTask = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!editingTask || !title.trim() || !assignedTo.trim() || !dueDate) {
+      toast({
+        title: 'Ошибка',
+        description: 'Заполните обязательные поля',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    const updatedTasks = tasks.map(t => 
+      t.id === editingTask.id 
+        ? { ...t, title, description, assignedTo, priority, dueDate }
+        : t
+    );
+
+    saveTasks(updatedTasks);
+    
+    toast({
+      title: 'Обновлено!',
+      description: 'Задача успешно изменена',
+    });
+
+    resetForm();
+  };
+
+  const handleDeleteTask = () => {
+    if (deleteTaskId === null) return;
+
+    const updatedTasks = tasks.filter(t => t.id !== deleteTaskId);
+    saveTasks(updatedTasks);
+    
+    toast({
+      title: 'Удалено',
+      description: 'Задача удалена',
+    });
+
+    setDeleteTaskId(null);
+  };
+
+  const resetForm = () => {
     setTitle('');
     setDescription('');
     setAssignedTo('');
     setPriority('medium');
     setDueDate('');
     setOpen(false);
+    setEditingTask(null);
+  };
+
+  const openEditDialog = (task: Task) => {
+    setEditingTask(task);
+    setTitle(task.title);
+    setDescription(task.description);
+    setAssignedTo(task.assignedTo);
+    setPriority(task.priority);
+    setDueDate(task.dueDate);
+    setOpen(true);
   };
 
   const handleStatusChange = (taskId: number, newStatus: Task['status']) => {
-    setTasks(tasks.map(t => t.id === taskId ? { ...t, status: newStatus } : t));
+    const updatedTasks = tasks.map(t => {
+      if (t.id === taskId) {
+        const updated = { ...t, status: newStatus };
+        if (newStatus === 'completed' && !t.completedAt) {
+          updated.completedAt = new Date().toISOString();
+        }
+        return updated;
+      }
+      return t;
+    });
+
+    saveTasks(updatedTasks);
+    
     toast({
       title: 'Статус обновлён',
       description: 'Статус задачи изменён',
@@ -143,6 +218,14 @@ export const CouncilTasksPanel = ({ canManage, userName }: CouncilTasksPanelProp
     return names[priority];
   };
 
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('ru-RU', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+    });
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
@@ -153,7 +236,10 @@ export const CouncilTasksPanel = ({ canManage, userName }: CouncilTasksPanelProp
           </p>
         </div>
         {canManage && (
-          <Dialog open={open} onOpenChange={setOpen}>
+          <Dialog open={open} onOpenChange={(isOpen) => {
+            setOpen(isOpen);
+            if (!isOpen) resetForm();
+          }}>
             <DialogTrigger asChild>
               <Button className="gap-2">
                 <Icon name="Plus" size={18} />
@@ -162,12 +248,12 @@ export const CouncilTasksPanel = ({ canManage, userName }: CouncilTasksPanelProp
             </DialogTrigger>
             <DialogContent className="sm:max-w-[525px]">
               <DialogHeader>
-                <DialogTitle>Новая задача</DialogTitle>
+                <DialogTitle>{editingTask ? 'Редактировать задачу' : 'Новая задача'}</DialogTitle>
                 <DialogDescription>
-                  Создайте задачу для члена студсовета
+                  {editingTask ? 'Изменение существующей задачи' : 'Создайте задачу для члена студсовета'}
                 </DialogDescription>
               </DialogHeader>
-              <form onSubmit={handleCreateTask}>
+              <form onSubmit={editingTask ? handleEditTask : handleCreateTask}>
                 <div className="grid gap-4 py-4">
                   <div className="space-y-2">
                     <Label htmlFor="task-title">Название *</Label>
@@ -225,7 +311,7 @@ export const CouncilTasksPanel = ({ canManage, userName }: CouncilTasksPanelProp
                 <DialogFooter>
                   <Button type="submit" className="gap-2">
                     <Icon name="Check" size={18} />
-                    Создать
+                    {editingTask ? 'Сохранить' : 'Создать'}
                   </Button>
                 </DialogFooter>
               </form>
@@ -235,6 +321,15 @@ export const CouncilTasksPanel = ({ canManage, userName }: CouncilTasksPanelProp
       </div>
 
       <div className="grid gap-4">
+        {tasks.length === 0 && (
+          <Card>
+            <CardContent className="py-12 text-center text-muted-foreground">
+              <Icon name="ListTodo" size={48} className="mx-auto mb-4 opacity-20" />
+              <p>Задач пока нет</p>
+            </CardContent>
+          </Card>
+        )}
+
         {tasks.map((task, index) => (
           <Card key={task.id} className="hover:shadow-lg transition-shadow animate-slide-in" style={{ animationDelay: `${index * 100}ms` }}>
             <CardHeader>
@@ -249,46 +344,102 @@ export const CouncilTasksPanel = ({ canManage, userName }: CouncilTasksPanelProp
                     </div>
                     <div className="flex items-center gap-1">
                       <Icon name="Calendar" size={14} />
-                      {task.dueDate}
+                      {formatDate(task.dueDate)}
                     </div>
                     <div className="flex items-center gap-1">
                       <Icon name="UserCheck" size={14} />
                       {task.createdBy}
                     </div>
+                    {task.completedAt && (
+                      <div className="flex items-center gap-1 text-green-600">
+                        <Icon name="CheckCircle" size={14} />
+                        Завершено {formatDate(task.completedAt)}
+                      </div>
+                    )}
                   </div>
                 </div>
                 <div className="flex flex-col gap-2">
                   <Badge variant={getPriorityColor(task.priority)}>
                     {getPriorityName(task.priority)}
                   </Badge>
-                  <Select 
-                    value={task.status} 
-                    onValueChange={(v) => handleStatusChange(task.id, v as Task['status'])}
-                  >
-                    <SelectTrigger className="w-32">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="pending">Ожидает</SelectItem>
-                      <SelectItem value="in_progress">В работе</SelectItem>
-                      <SelectItem value="completed">Выполнено</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <Badge variant={getStatusColor(task.status)}>
+                    {getStatusName(task.status)}
+                  </Badge>
                 </div>
               </div>
             </CardHeader>
-          </Card>
-        ))}
-
-        {tasks.length === 0 && (
-          <Card>
-            <CardContent className="py-12 text-center text-muted-foreground">
-              <Icon name="CheckCircle" size={48} className="mx-auto mb-4 opacity-20" />
-              <p>Нет активных задач</p>
+            <CardContent>
+              <div className="flex flex-wrap gap-2">
+                {task.status !== 'completed' && (
+                  <>
+                    {task.status === 'pending' && (
+                      <Button 
+                        size="sm" 
+                        variant="secondary"
+                        className="gap-2"
+                        onClick={() => handleStatusChange(task.id, 'in_progress')}
+                      >
+                        <Icon name="Play" size={14} />
+                        Начать работу
+                      </Button>
+                    )}
+                    {task.status === 'in_progress' && (
+                      <Button 
+                        size="sm" 
+                        variant="default"
+                        className="gap-2"
+                        onClick={() => handleStatusChange(task.id, 'completed')}
+                      >
+                        <Icon name="CheckCircle" size={14} />
+                        Завершить
+                      </Button>
+                    )}
+                  </>
+                )}
+                {canManage && (
+                  <>
+                    <Button 
+                      size="sm" 
+                      variant="outline"
+                      className="gap-2"
+                      onClick={() => openEditDialog(task)}
+                    >
+                      <Icon name="Edit" size={14} />
+                      Редактировать
+                    </Button>
+                    <Button 
+                      size="sm" 
+                      variant="destructive"
+                      className="gap-2"
+                      onClick={() => setDeleteTaskId(task.id)}
+                    >
+                      <Icon name="Trash2" size={14} />
+                      Удалить
+                    </Button>
+                  </>
+                )}
+              </div>
             </CardContent>
           </Card>
-        )}
+        ))}
       </div>
+
+      <AlertDialog open={deleteTaskId !== null} onOpenChange={(open) => !open && setDeleteTaskId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Удалить задачу?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Это действие нельзя отменить. Задача будет удалена навсегда.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Отмена</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteTask} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Удалить
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

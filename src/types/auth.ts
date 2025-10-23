@@ -5,6 +5,8 @@ export type UserPosition =
   | 'household_sector'
   | 'sports_sector'
   | 'duty_supervisor'
+  | 'secretary'
+  | 'media_sector'
   | 'floor_2_head'
   | 'floor_3_head'
   | 'floor_4_head'

@@ -13,7 +13,7 @@ interface CouncilPanelProps {
 }
 
 export const CouncilPanel = ({ users, currentUser }: CouncilPanelProps) => {
-  const [activeTab, setActiveTab] = useState<'members' | 'tasks'>('members');
+  const [activeTab, setActiveTab] = useState<'members' | 'tasks'>('tasks');
   
   const councilMembers = users.filter(u => 
     ['manager', 'admin', 'chairman', 'vice_chairman'].includes(u.role) ||
@@ -43,15 +43,19 @@ export const CouncilPanel = ({ users, currentUser }: CouncilPanelProps) => {
   return (
     <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'members' | 'tasks')}>
       <TabsList className="grid w-full grid-cols-2 mb-6">
-        <TabsTrigger value="members" className="gap-2">
-          <Icon name="Users" size={18} />
-          Состав
-        </TabsTrigger>
         <TabsTrigger value="tasks" className="gap-2">
           <Icon name="CheckSquare" size={18} />
           Задачи
         </TabsTrigger>
+        <TabsTrigger value="members" className="gap-2">
+          <Icon name="Users" size={18} />
+          Состав
+        </TabsTrigger>
       </TabsList>
+
+      <TabsContent value="tasks">
+        <CouncilTasksPanel canManage={canManageTasks} userName={currentUser.name} />
+      </TabsContent>
 
       <TabsContent value="members" className="space-y-4">
         <div className="mb-6">
@@ -126,10 +130,6 @@ export const CouncilPanel = ({ users, currentUser }: CouncilPanelProps) => {
             </CardContent>
           </Card>
         )}
-      </TabsContent>
-
-      <TabsContent value="tasks">
-        <CouncilTasksPanel canManage={canManageTasks} userName={currentUser.name} />
       </TabsContent>
     </Tabs>
   );

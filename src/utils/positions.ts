@@ -5,6 +5,8 @@ export const POSITION_NAMES: Record<UserPosition, string> = {
   household_sector: 'Ответственный за хозяйственно-бытовой сектор',
   sports_sector: 'Ответственный за спортивный сектор',
   duty_supervisor: 'Ответственный за дежурства',
+  secretary: 'Секретарь студсовета',
+  media_sector: 'Ответственный за медиа-сектор',
   floor_2_head: 'Староста второго этажа',
   floor_3_head: 'Староста третьего этажа',
   floor_4_head: 'Староста четвёртого этажа',
