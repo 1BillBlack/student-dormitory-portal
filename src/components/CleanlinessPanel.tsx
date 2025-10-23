@@ -72,14 +72,14 @@ const getWeekDates = (weekOffset: number = 0): string[] => {
   
   const daysFromMonday = dayOfWeek - 1;
   
-  const mondayDate = new Date(now);
-  mondayDate.setDate(now.getDate() - daysFromMonday + (weekOffset * 7));
-  mondayDate.setHours(0, 0, 0, 0);
+  const mondayTimestamp = now.getTime() - (daysFromMonday * 24 * 60 * 60 * 1000) + (weekOffset * 7 * 24 * 60 * 60 * 1000);
+  const monday = new Date(mondayTimestamp);
+  monday.setHours(0, 0, 0, 0);
   
   for (let i = 0; i < 7; i++) {
-    const currentDate = new Date(mondayDate);
-    currentDate.setDate(mondayDate.getDate() + i);
-    dates.push(currentDate.toISOString().split('T')[0]);
+    const dayTimestamp = mondayTimestamp + (i * 24 * 60 * 60 * 1000);
+    const day = new Date(dayTimestamp);
+    dates.push(day.toISOString().split('T')[0]);
   }
   
   return dates;
