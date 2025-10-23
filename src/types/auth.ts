@@ -6,6 +6,7 @@ export interface User {
   name: string;
   role: UserRole;
   room?: string;
+  isFrozen?: boolean;
 }
 
 export interface AuthState {

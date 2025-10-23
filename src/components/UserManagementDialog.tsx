@@ -1,0 +1,159 @@
+import { useState, useEffect } from 'react';
+import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import Icon from '@/components/ui/icon';
+import { useToast } from '@/hooks/use-toast';
+import { User, UserRole } from '@/types/auth';
+
+interface UserManagementDialogProps {
+  user: User | null;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onSave: (user: User) => void;
+  mode: 'create' | 'edit';
+}
+
+export const UserManagementDialog = ({ user, open, onOpenChange, onSave, mode }: UserManagementDialogProps) => {
+  const [email, setEmail] = useState('');
+  const [name, setName] = useState('');
+  const [role, setRole] = useState<UserRole>('member');
+  const [room, setRoom] = useState('');
+  const { toast } = useToast();
+
+  useEffect(() => {
+    if (user && mode === 'edit') {
+      setEmail(user.email);
+      setName(user.name);
+      setRole(user.role);
+      setRoom(user.room || '');
+    } else if (mode === 'create') {
+      setEmail('');
+      setName('');
+      setRole('member');
+      setRoom('');
+    }
+  }, [user, mode, open]);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!email.trim() || !name.trim()) {
+      toast({
+        title: 'Ошибка',
+        description: 'Заполните обязательные поля',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    const userData: User = {
+      id: user?.id || Date.now().toString(),
+      email,
+      name,
+      role,
+      room: room || undefined,
+      isFrozen: user?.isFrozen || false,
+    };
+
+    onSave(userData);
+    
+    toast({
+      title: 'Успешно!',
+      description: mode === 'create' ? 'Пользователь создан' : 'Пользователь обновлён',
+    });
+
+    onOpenChange(false);
+  };
+
+  const getRoleName = (role: UserRole) => {
+    const roles = {
+      manager: 'Менеджер',
+      admin: 'Администратор',
+      chairman: 'Председатель студсовета',
+      vice_chairman: 'Заместитель председателя',
+      member: 'Участник',
+    };
+    return roles[role];
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[525px]">
+        <DialogHeader>
+          <DialogTitle>
+            {mode === 'create' ? 'Создать пользователя' : 'Редактировать пользователя'}
+          </DialogTitle>
+          <DialogDescription>
+            {mode === 'create' 
+              ? 'Создайте новый аккаунт пользователя' 
+              : 'Внесите изменения в данные пользователя'}
+          </DialogDescription>
+        </DialogHeader>
+        <form onSubmit={handleSubmit}>
+          <div className="grid gap-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="user-email">Электронная почта *</Label>
+              <Input
+                id="user-email"
+                type="email"
+                placeholder="user@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                disabled={mode === 'edit'}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="user-name">Имя *</Label>
+              <Input
+                id="user-name"
+                placeholder="Имя пользователя"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="user-role">Роль</Label>
+              <Select value={role} onValueChange={(v) => setRole(v as UserRole)}>
+                <SelectTrigger id="user-role">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="member">{getRoleName('member')}</SelectItem>
+                  <SelectItem value="vice_chairman">{getRoleName('vice_chairman')}</SelectItem>
+                  <SelectItem value="chairman">{getRoleName('chairman')}</SelectItem>
+                  <SelectItem value="admin">{getRoleName('admin')}</SelectItem>
+                  <SelectItem value="manager">{getRoleName('manager')}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="user-room">Комната</Label>
+              <Input
+                id="user-room"
+                placeholder="Номер комнаты"
+                value={room}
+                onChange={(e) => setRoom(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button type="submit" className="gap-2">
+              <Icon name="Check" size={18} />
+              {mode === 'create' ? 'Создать' : 'Сохранить'}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+};

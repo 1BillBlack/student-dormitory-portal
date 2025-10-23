@@ -17,9 +17,19 @@ import Icon from '@/components/ui/icon';
 import { useAuth } from '@/contexts/AuthContext';
 import { CreateAnnouncementDialog } from '@/components/CreateAnnouncementDialog';
 import { EditAnnouncementDialog } from '@/components/EditAnnouncementDialog';
+import { UsersPanel } from '@/components/UsersPanel';
 import { useToast } from '@/hooks/use-toast';
+import { User } from '@/types/auth';
 
-type TabType = 'announcements' | 'duties' | 'cleanliness';
+type TabType = 'announcements' | 'duties' | 'cleanliness' | 'users';
+
+const initialUsers: User[] = [
+  { id: '1', email: 'manager@dorm.ru', name: 'Алексей Менеджеров', role: 'manager', room: '101', isFrozen: false },
+  { id: '2', email: 'admin@dorm.ru', name: 'Мария Администраторова', role: 'admin', room: '205', isFrozen: false },
+  { id: '3', email: 'chairman@dorm.ru', name: 'Иван Председателев', role: 'chairman', room: '310', isFrozen: false },
+  { id: '4', email: 'vice@dorm.ru', name: 'Елена Заместителева', role: 'vice_chairman', room: '415', isFrozen: false },
+  { id: '5', email: 'member@dorm.ru', name: 'Петр Участников', role: 'member', room: '520', isFrozen: false },
+];
 
 const initialAnnouncements = [
   { id: 1, title: 'Собрание студсовета', date: '2025-10-25', content: 'Приглашаем всех на общее собрание в актовом зале', priority: 'high' },
@@ -44,10 +54,28 @@ export const Dashboard = () => {
   const [announcements, setAnnouncements] = useState(initialAnnouncements);
   const [editingAnnouncement, setEditingAnnouncement] = useState<typeof initialAnnouncements[0] | null>(null);
   const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [users, setUsers] = useState<User[]>(initialUsers);
   const { user, logout } = useAuth();
   const { toast } = useToast();
 
   const canManageAnnouncements = ['manager', 'admin', 'chairman', 'vice_chairman'].includes(user?.role || '');
+  const canManageUsers = ['manager', 'admin', 'chairman', 'vice_chairman'].includes(user?.role || '');
+
+  const handleUpdateUser = (updatedUser: User) => {
+    setUsers(users.map(u => u.id === updatedUser.id ? updatedUser : u));
+  };
+
+  const handleDeleteUser = (userId: string) => {
+    setUsers(users.filter(u => u.id !== userId));
+    toast({
+      title: 'Удалено',
+      description: 'Пользователь удалён',
+    });
+  };
+
+  const handleCreateUser = (newUser: User) => {
+    setUsers([...users, newUser]);
+  };
 
   const handleAddAnnouncement = (announcement: { title: string; content: string; priority: string; date: string }) => {
     const newAnnouncement = {
@@ -131,7 +159,7 @@ export const Dashboard = () => {
         </div>
 
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as TabType)} className="animate-fade-in">
-          <TabsList className="grid w-full grid-cols-3 mb-6 h-auto p-1">
+          <TabsList className={`grid w-full mb-6 h-auto p-1 ${canManageUsers ? 'grid-cols-4' : 'grid-cols-3'}`}>
             <TabsTrigger value="announcements" className="gap-2 py-3">
               <Icon name="Megaphone" size={18} />
               <span className="hidden sm:inline">Объявления</span>
@@ -144,6 +172,12 @@ export const Dashboard = () => {
               <Icon name="Sparkles" size={18} />
               <span className="hidden sm:inline">Чистота</span>
             </TabsTrigger>
+            {canManageUsers && (
+              <TabsTrigger value="users" className="gap-2 py-3">
+                <Icon name="Users" size={18} />
+                <span className="hidden sm:inline">Пользователи</span>
+              </TabsTrigger>
+            )}
           </TabsList>
 
           <TabsContent value="announcements" className="space-y-4">
@@ -288,6 +322,18 @@ export const Dashboard = () => {
               </Card>
             ))}
           </TabsContent>
+
+          {canManageUsers && (
+            <TabsContent value="users" className="space-y-4">
+              <UsersPanel
+                users={users}
+                currentUser={user!}
+                onUpdateUser={handleUpdateUser}
+                onDeleteUser={handleDeleteUser}
+                onCreateUser={handleCreateUser}
+              />
+            </TabsContent>
+          )}
         </Tabs>
       </main>
     </div>
