@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User, AuthState } from '@/types/auth';
+import { useUsers } from '@/contexts/UsersContext';
 
 interface AuthContextType extends AuthState {
   login: (email: string, password: string, rememberMe: boolean) => Promise<void>;
@@ -8,7 +9,8 @@ interface AuthContextType extends AuthState {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+const AuthProviderInner: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { getUserByEmail } = useUsers();
   const [authState, setAuthState] = useState<AuthState>({
     user: null,
     isAuthenticated: false,
@@ -32,20 +34,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const login = async (email: string, password: string, rememberMe: boolean) => {
-    const testAccounts: Record<string, User> = {
-      'manager@dorm.ru': { id: '1', email: 'manager@dorm.ru', name: 'Алексей Менеджеров', role: 'manager', room: '101' },
-      'admin@dorm.ru': { id: '2', email: 'admin@dorm.ru', name: 'Мария Администраторова', role: 'admin', room: '205' },
-      'chairman@dorm.ru': { id: '3', email: 'chairman@dorm.ru', name: 'Иван Председателев', role: 'chairman', room: '310' },
-      'vice@dorm.ru': { id: '4', email: 'vice@dorm.ru', name: 'Елена Заместителева', role: 'vice_chairman', room: '415' },
-      'member@dorm.ru': { id: '5', email: 'member@dorm.ru', name: 'Петр Участников', role: 'member', room: '520' },
-    };
-
-    const mockUser: User = testAccounts[email] || {
-      id: '6',
+    const mockUser = getUserByEmail(email) || {
+      id: Date.now().toString(),
       email,
       name: email.split('@')[0],
-      role: 'member',
+      role: 'member' as const,
       room: '999',
+      positions: [],
+      isFrozen: false,
     };
 
     setAuthState({
@@ -78,6 +74,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       {children}
     </AuthContext.Provider>
   );
+};
+
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  return <AuthProviderInner>{children}</AuthProviderInner>;
 };
 
 export const useAuth = () => {
