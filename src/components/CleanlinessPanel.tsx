@@ -325,21 +325,6 @@ export const CleanlinessPanel = ({ currentUser, users }: CleanlinesPanelProps) =
   const canEdit = selectedFloor ? canEditFloor(selectedFloor) : false;
   const showEditButton = canEdit && !editMode;
 
-  if (!selectedFloor && canViewAllFloors()) {
-    return (
-      <div className="space-y-4">
-        <Card>
-          <CardContent className="py-12">
-            <div className="text-center text-muted-foreground">
-              <Icon name="Home" size={48} className="mx-auto mb-4 opacity-50" />
-              <p className="text-lg">Выберите этаж для просмотра таблицы проверок</p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -503,7 +488,16 @@ export const CleanlinessPanel = ({ currentUser, users }: CleanlinesPanelProps) =
         </div>
       </div>
 
-      {selectedFloor && (
+      {!selectedFloor && canViewAllFloors() ? (
+        <Card>
+          <CardContent className="py-12">
+            <div className="text-center text-muted-foreground">
+              <Icon name="Home" size={48} className="mx-auto mb-4 opacity-50" />
+              <p className="text-lg">Выберите этаж для просмотра таблицы проверок</p>
+            </div>
+          </CardContent>
+        </Card>
+      ) : selectedFloor ? (
         <Card>
           <CardContent className="p-0">
             <div className="overflow-x-auto">
@@ -605,7 +599,7 @@ export const CleanlinessPanel = ({ currentUser, users }: CleanlinesPanelProps) =
             </div>
           </CardContent>
         </Card>
-      )}
+      ) : null}
 
       <Card>
         <CardHeader>
