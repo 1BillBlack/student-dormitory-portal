@@ -461,11 +461,11 @@ export const CleanlinessPanel = ({ currentUser, users }: CleanlinesPanelProps) =
     return settings.closedFloors[date]?.includes(floor) || false;
   };
 
-  const dates = viewMode === 'week' ? getWeekDates(periodOffset) : getMonthDates(periodOffset);
-  const workingDates = dates.filter(date => isWorkingDay(date, settings));
-  
   const userFloors = getUserFloors();
   const availableFloors = userFloors.length > 0 ? userFloors : (userFloor ? [userFloor] : []);
+
+  const dates = viewMode === 'week' ? getWeekDates(periodOffset) : getMonthDates(periodOffset);
+  const workingDates = dates.filter(date => isWorkingDay(date, settings));
 
   const rooms = selectedFloor ? (settings.rooms[selectedFloor] || getDefaultRooms(selectedFloor)) : [];
   const canEdit = selectedFloor ? canEditFloor(selectedFloor) : false;
