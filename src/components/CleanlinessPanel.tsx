@@ -66,11 +66,12 @@ const getDefaultRooms = (floor: number): string[] => {
 const getWeekDates = (weekOffset: number = 0): string[] => {
   const dates: string[] = [];
   const today = new Date();
-  today.setDate(today.getDate() + (weekOffset * 7));
+  const targetDate = new Date(today);
+  targetDate.setDate(today.getDate() + (weekOffset * 7));
   
-  const currentDay = today.getDay();
-  const monday = new Date(today);
-  monday.setDate(today.getDate() - (currentDay === 0 ? 6 : currentDay - 1));
+  const currentDay = targetDate.getDay();
+  const monday = new Date(targetDate);
+  monday.setDate(targetDate.getDate() - (currentDay === 0 ? 6 : currentDay - 1));
   
   for (let i = 0; i < 7; i++) {
     const date = new Date(monday);
