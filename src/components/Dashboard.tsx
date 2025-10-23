@@ -21,6 +21,7 @@ import { EditAnnouncementDialog } from '@/components/EditAnnouncementDialog';
 import { UsersPanel } from '@/components/UsersPanel';
 import { CouncilPanel } from '@/components/CouncilPanel';
 import { CleanlinessPanel } from '@/components/CleanlinessPanel';
+import { UserManagementDialog } from '@/components/UserManagementDialog';
 import { useToast } from '@/hooks/use-toast';
 import { UserPosition } from '@/types/auth';
 
