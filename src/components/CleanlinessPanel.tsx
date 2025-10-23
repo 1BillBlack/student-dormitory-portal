@@ -138,7 +138,8 @@ const isWorkingDay = (date: string, settings: CleanlinessSettings): boolean => {
     return settings.workingDays[date];
   }
   
-  const dayOfWeek = new Date(date).getDay();
+  let dayOfWeek = new Date(date).getDay();
+  dayOfWeek = dayOfWeek === 0 ? 7 : dayOfWeek;
   return !settings.defaultNonWorkingDays.includes(dayOfWeek);
 };
 
@@ -161,7 +162,7 @@ export const CleanlinessPanel = ({ currentUser, users }: CleanlinesPanelProps) =
       '5': getDefaultRooms(5),
     },
     workingDays: {},
-    defaultNonWorkingDays: [5, 6, 0],
+    defaultNonWorkingDays: [5, 6, 7],
   });
 
   const userFloor = currentUser.room ? getFloorFromRoom(currentUser.room) : null;
