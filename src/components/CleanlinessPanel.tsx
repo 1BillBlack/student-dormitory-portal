@@ -69,9 +69,11 @@ const getWeekDates = (weekOffset: number = 0): string[] => {
   const targetDate = new Date(today);
   targetDate.setDate(today.getDate() + (weekOffset * 7));
   
-  const currentDay = targetDate.getDay();
+  let currentDay = targetDate.getDay();
+  currentDay = currentDay === 0 ? 7 : currentDay;
+  
   const monday = new Date(targetDate);
-  monday.setDate(targetDate.getDate() - (currentDay === 0 ? 6 : currentDay - 1));
+  monday.setDate(targetDate.getDate() - currentDay + 1);
   
   for (let i = 0; i < 7; i++) {
     const date = new Date(monday);
