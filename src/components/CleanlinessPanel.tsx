@@ -233,6 +233,10 @@ export const CleanlinessPanel = ({ currentUser, users }: CleanlinesPanelProps) =
   });
 
   const canEditAnyFloor = (): boolean => {
+    // Проверяем роль
+    if (['manager', 'admin', 'moderator'].includes(currentUser.role)) return true;
+    
+    // Проверяем должности
     if (!currentUser.positions) return false;
     
     return currentUser.positions.some(p => 
