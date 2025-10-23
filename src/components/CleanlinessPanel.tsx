@@ -123,7 +123,7 @@ const getMonthDates = (monthOffset: number = 0): string[] => {
   return dates;
 };
 
-const formatDate = (dateString: string): string => {
+const formatDateHeader = (dateString: string): string => {
   const [year, month, day] = dateString.split('-').map(Number);
   const date = new Date(year, month - 1, day);
   const dayNum = date.getDate();
@@ -630,7 +630,7 @@ export const CleanlinessPanel = ({ currentUser, users }: CleanlinesPanelProps) =
                           isMonday ? 'bg-purple-100' : ''
                         }`}>
                           <div className="whitespace-pre-line text-xs leading-tight">
-                            {formatDate(date)}
+                            {formatDateHeader(date)}
                             {isMonday && <div className="text-[10px] text-purple-700 font-bold mt-0.5">Ген. уборка</div>}
                           </div>
                           {canCloseFloors() && editMode && working && selectedFloor && (
