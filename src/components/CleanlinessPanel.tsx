@@ -66,27 +66,26 @@ const getDefaultRooms = (floor: number): string[] => {
 const getWeekDates = (weekOffset: number = 0): string[] => {
   const dates: string[] = [];
   const now = new Date();
+  now.setHours(12, 0, 0, 0);
   
   let dayOfWeek = now.getDay();
-  console.log('Current day of week (0=Sunday):', dayOfWeek);
   if (dayOfWeek === 0) dayOfWeek = 7;
-  console.log('Adjusted day of week (7=Sunday):', dayOfWeek);
   
   const daysFromMonday = dayOfWeek - 1;
-  console.log('Days from Monday:', daysFromMonday);
   
-  const mondayTimestamp = now.getTime() - (daysFromMonday * 24 * 60 * 60 * 1000) + (weekOffset * 7 * 24 * 60 * 60 * 1000);
-  const monday = new Date(mondayTimestamp);
-  monday.setHours(0, 0, 0, 0);
-  console.log('Monday date:', monday.toISOString().split('T')[0]);
+  const monday = new Date(now);
+  monday.setDate(now.getDate() - daysFromMonday + (weekOffset * 7));
+  monday.setHours(12, 0, 0, 0);
   
   for (let i = 0; i < 7; i++) {
-    const dayTimestamp = mondayTimestamp + (i * 24 * 60 * 60 * 1000);
-    const day = new Date(dayTimestamp);
-    dates.push(day.toISOString().split('T')[0]);
+    const day = new Date(monday);
+    day.setDate(monday.getDate() + i);
+    const year = day.getFullYear();
+    const month = String(day.getMonth() + 1).padStart(2, '0');
+    const date = String(day.getDate()).padStart(2, '0');
+    dates.push(`${year}-${month}-${date}`);
   }
   
-  console.log('Generated week dates:', dates);
   return dates;
 };
 
@@ -107,11 +106,12 @@ const getMonthDates = (monthOffset: number = 0): string[] => {
 };
 
 const formatDate = (dateString: string): string => {
-  const date = new Date(dateString);
-  const day = date.getDate();
-  const month = date.toLocaleDateString('ru-RU', { month: 'short' });
+  const [year, month, day] = dateString.split('-').map(Number);
+  const date = new Date(year, month - 1, day);
+  const dayNum = date.getDate();
+  const monthStr = date.toLocaleDateString('ru-RU', { month: 'short' });
   const weekday = date.toLocaleDateString('ru-RU', { weekday: 'short' });
-  return `${day} ${month}\n${weekday}`;
+  return `${dayNum} ${monthStr}\n${weekday}`;
 };
 
 const getPeriodLabel = (dates: string[], viewMode: ViewMode): string => {
