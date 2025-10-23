@@ -13,16 +13,23 @@ export const LoginForm = () => {
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
   const { login } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    setError('');
     
     try {
       await login(email, password, rememberMe);
     } catch (error) {
       console.error('Login error:', error);
+      if (error instanceof Error) {
+        setError(error.message);
+      } else {
+        setError('Ошибка входа в систему');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -113,6 +120,15 @@ export const LoginForm = () => {
                 </>
               )}
             </Button>
+
+            {error && (
+              <Alert className="mt-4 border-destructive/50 bg-destructive/10">
+                <Icon name="AlertCircle" size={16} className="text-destructive" />
+                <AlertDescription className="text-sm ml-2 text-destructive">
+                  {error}
+                </AlertDescription>
+              </Alert>
+            )}
           </form>
           <Alert className="mt-4 border-primary/20 bg-primary/5">
             <Icon name="Info" size={16} className="text-primary" />

@@ -20,18 +20,29 @@ const AuthProviderInner: React.FC<{ children: React.ReactNode }> = ({ children }
     const savedUser = localStorage.getItem('user');
     const sessionUser = sessionStorage.getItem('user');
     
-    if (savedUser) {
+    const userToRestore = savedUser || sessionUser;
+    
+    if (userToRestore) {
+      const parsedUser = JSON.parse(userToRestore);
+      const currentUser = getUserByEmail(parsedUser.email);
+      
+      if (currentUser?.isFrozen) {
+        localStorage.removeItem('user');
+        localStorage.removeItem('user_expiry');
+        sessionStorage.removeItem('user');
+        setAuthState({
+          user: null,
+          isAuthenticated: false,
+        });
+        return;
+      }
+      
       setAuthState({
-        user: JSON.parse(savedUser),
-        isAuthenticated: true,
-      });
-    } else if (sessionUser) {
-      setAuthState({
-        user: JSON.parse(sessionUser),
+        user: currentUser || parsedUser,
         isAuthenticated: true,
       });
     }
-  }, []);
+  }, [getUserByEmail]);
 
   const login = async (email: string, password: string, rememberMe: boolean) => {
     const mockUser = getUserByEmail(email) || {
@@ -43,6 +54,10 @@ const AuthProviderInner: React.FC<{ children: React.ReactNode }> = ({ children }
       positions: [],
       isFrozen: false,
     };
+
+    if (mockUser.isFrozen) {
+      throw new Error('Ваш аккаунт заморожен. Обратитесь к администратору.');
+    }
 
     setAuthState({
       user: mockUser,
