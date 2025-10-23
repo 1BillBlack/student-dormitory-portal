@@ -197,7 +197,7 @@ export const CleanlinessPanel = ({ currentUser, users }: CleanlinesPanelProps) =
     if (!currentUser.positions) return false;
     
     return currentUser.positions.some(p => 
-      p === 'director' || p === 'vice_director' || p === 'cleanliness_manager' || p === 'head' || p === 'vice_head'
+      p === 'director' || p === 'vice_director' || p === 'cleanliness_manager' || p === 'chairman' || p === 'vice_chairman'
     );
   };
 
