@@ -193,7 +193,23 @@ export const CleanlinessPanel = ({ currentUser, users }: CleanlinesPanelProps) =
     defaultNonWorkingDays: [5, 6, 7],
   });
 
-  const userFloor = currentUser.room ? getFloorFromRoom(currentUser.room) : null;
+  const getUserFloorFromPosition = (): number | null => {
+    if (!currentUser.positions || currentUser.positions.length === 0) return null;
+    
+    for (const position of currentUser.positions) {
+      if (position.startsWith('floor_')) {
+        const match = position.match(/floor_(\d)_/);
+        if (match) {
+          return parseInt(match[1]);
+        }
+      }
+    }
+    return null;
+  };
+
+  const userFloor = currentUser.room 
+    ? getFloorFromRoom(currentUser.room) 
+    : getUserFloorFromPosition();
 
   useEffect(() => {
     const stored = localStorage.getItem(STORAGE_KEY);
@@ -220,10 +236,10 @@ export const CleanlinessPanel = ({ currentUser, users }: CleanlinesPanelProps) =
   }, []);
 
   useEffect(() => {
-    if (userFloor && !canViewAllFloors()) {
-      setSelectedFloor(userFloor);
+    if (!canViewAllFloors() && availableFloors.length > 0 && !selectedFloor) {
+      setSelectedFloor(availableFloors[0]);
     }
-  }, [userFloor]);
+  }, [availableFloors, selectedFloor]);
 
   const saveData = (newData: CleanlinessData) => {
     setData(newData);
@@ -259,6 +275,27 @@ export const CleanlinessPanel = ({ currentUser, users }: CleanlinesPanelProps) =
 
   const canViewAllFloors = (): boolean => {
     return canEditAnyFloor();
+  };
+
+  const getUserFloors = (): number[] => {
+    if (canViewAllFloors()) return [2, 3, 4, 5];
+    
+    const floors: number[] = [];
+    if (!currentUser.positions) return floors;
+    
+    currentUser.positions.forEach(position => {
+      if (position.startsWith('floor_')) {
+        const match = position.match(/floor_(\d)_/);
+        if (match) {
+          const floor = parseInt(match[1]);
+          if (!floors.includes(floor)) {
+            floors.push(floor);
+          }
+        }
+      }
+    });
+    
+    return floors.sort();
   };
 
   const handleScoreChange = (floor: number, date: string, room: string, score: string) => {
@@ -427,9 +464,8 @@ export const CleanlinessPanel = ({ currentUser, users }: CleanlinesPanelProps) =
   const dates = viewMode === 'week' ? getWeekDates(periodOffset) : getMonthDates(periodOffset);
   const workingDates = dates.filter(date => isWorkingDay(date, settings));
   
-  const availableFloors = canViewAllFloors() 
-    ? [2, 3, 4, 5] 
-    : userFloor ? [userFloor] : [];
+  const userFloors = getUserFloors();
+  const availableFloors = userFloors.length > 0 ? userFloors : (userFloor ? [userFloor] : []);
 
   const rooms = selectedFloor ? (settings.rooms[selectedFloor] || getDefaultRooms(selectedFloor)) : [];
   const canEdit = selectedFloor ? canEditFloor(selectedFloor) : false;
@@ -445,7 +481,7 @@ export const CleanlinessPanel = ({ currentUser, users }: CleanlinesPanelProps) =
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          {canViewAllFloors() && (
+          {(canViewAllFloors() || availableFloors.length > 1) && (
             <Select 
               value={selectedFloor?.toString() || ''} 
               onValueChange={(v) => setSelectedFloor(parseInt(v))}
