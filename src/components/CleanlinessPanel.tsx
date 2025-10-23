@@ -193,6 +193,39 @@ export const CleanlinessPanel = ({ currentUser, users }: CleanlinesPanelProps) =
     defaultNonWorkingDays: [5, 6, 7],
   });
 
+  const canEditAnyFloor = (): boolean => {
+    if (!currentUser.positions) return false;
+    
+    return currentUser.positions.some(p => 
+      p === 'director' || p === 'vice_director' || p === 'cleanliness_manager'
+    );
+  };
+
+  const canViewAllFloors = (): boolean => {
+    return canEditAnyFloor();
+  };
+
+  const getUserFloors = (): number[] => {
+    if (canViewAllFloors()) return [2, 3, 4, 5];
+    
+    const floors: number[] = [];
+    if (!currentUser.positions) return floors;
+    
+    currentUser.positions.forEach(position => {
+      if (position.startsWith('floor_')) {
+        const match = position.match(/floor_(\d)_/);
+        if (match) {
+          const floor = parseInt(match[1]);
+          if (!floors.includes(floor)) {
+            floors.push(floor);
+          }
+        }
+      }
+    });
+    
+    return floors.sort();
+  };
+
   const getUserFloorFromPosition = (): number | null => {
     if (!currentUser.positions || currentUser.positions.length === 0) return null;
     
@@ -262,10 +295,6 @@ export const CleanlinessPanel = ({ currentUser, users }: CleanlinesPanelProps) =
     return ['manager', 'admin', 'moderator'].includes(currentUser.role);
   };
 
-  const canEditAnyFloor = (): boolean => {
-    return canManageSettings();
-  };
-
   const canEditFloor = (floor: number): boolean => {
     if (canEditAnyFloor()) return true;
     if (!currentUser.positions) return false;
@@ -274,31 +303,6 @@ export const CleanlinessPanel = ({ currentUser, users }: CleanlinesPanelProps) =
     const isFloorCleanliness = currentUser.positions.includes(`floor_${floor}_cleanliness` as any);
 
     return isFloorHead || isFloorCleanliness;
-  };
-
-  const canViewAllFloors = (): boolean => {
-    return canEditAnyFloor();
-  };
-
-  const getUserFloors = (): number[] => {
-    if (canViewAllFloors()) return [2, 3, 4, 5];
-    
-    const floors: number[] = [];
-    if (!currentUser.positions) return floors;
-    
-    currentUser.positions.forEach(position => {
-      if (position.startsWith('floor_')) {
-        const match = position.match(/floor_(\d)_/);
-        if (match) {
-          const floor = parseInt(match[1]);
-          if (!floors.includes(floor)) {
-            floors.push(floor);
-          }
-        }
-      }
-    });
-    
-    return floors.sort();
   };
 
   const handleScoreChange = (floor: number, date: string, room: string, score: string) => {
