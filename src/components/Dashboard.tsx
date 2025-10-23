@@ -3,6 +3,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -25,7 +27,7 @@ import { UserManagementDialog } from '@/components/UserManagementDialog';
 import { useToast } from '@/hooks/use-toast';
 import { UserPosition } from '@/types/auth';
 import { getPositionName } from '@/utils/positions';
-import { getTodayRoomScore } from '@/components/CleanlinessPanel';
+import { getTodayRoomScore, getRoomScores } from '@/components/CleanlinessPanel';
 
 type TabType = 'home' | 'notifications' | 'profile' | 'duties' | 'cleanliness' | 'admin' | 'council';
 
@@ -60,6 +62,8 @@ export const Dashboard = () => {
   const [announcements, setAnnouncements] = useState(initialAnnouncements);
   const [editingAnnouncement, setEditingAnnouncement] = useState<typeof initialAnnouncements[0] | null>(null);
   const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [statsPeriod, setStatsPeriod] = useState<'week' | 'month' | 'all'>('week');
+  const [statsRoom, setStatsRoom] = useState<string>('');
   const { user, logout } = useAuth();
   const { users, updateUser, deleteUser, createUser, updateUserPositions } = useUsers();
   const { toast } = useToast();
@@ -76,7 +80,21 @@ export const Dashboard = () => {
   const canSeeCleanlinessTab = 
     ['manager', 'admin', 'moderator'].includes(user?.role || '') || user?.room;
 
-  const todayScore = user?.room ? getTodayRoomScore(user.room) : undefined;
+  const canViewOtherStats = 
+    ['manager', 'admin', 'moderator'].includes(user?.role || '') ||
+    (user?.positions && (
+      user.positions.includes('chairman') ||
+      user.positions.includes('vice_chairman') ||
+      user.positions.includes('secretary')
+    ));
+
+  const displayRoom = statsRoom || user?.room || '';
+  const todayScore = displayRoom ? getTodayRoomScore(displayRoom) : undefined;
+  const roomScores = displayRoom ? getRoomScores(displayRoom, statsPeriod) : [];
+
+  const avgScore = roomScores.length > 0 
+    ? Math.round((roomScores.reduce((sum, s) => sum + s.score, 0) / roomScores.length) * 10) / 10
+    : null;
 
   const getScoreColor = (score: number): string => {
     if (score === 5) return 'bg-green-100 text-green-800 border-green-300';
@@ -228,27 +246,108 @@ export const Dashboard = () => {
               </TabsList>
 
               <TabsContent value="notifications" className="space-y-4">
-                {user?.room && todayScore && (
-                  <Card className="border-l-4 border-l-primary">
-                    <CardHeader>
-                      <CardTitle className="text-base flex items-center gap-2">
-                        <Icon name="Sparkles" size={20} />
-                        Оценка за чистоту вашей комнаты
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-sm text-muted-foreground mb-1">Комната {user.room} • Сегодня</p>
-                          <p className="text-xs text-muted-foreground">Проверяющий: {todayScore.inspector}</p>
-                        </div>
-                        <div className={`px-6 py-3 rounded-lg border-2 ${getScoreColor(todayScore.score)}`}>
-                          <div className="text-3xl font-bold text-center">{todayScore.score}</div>
-                        </div>
+                <Card className="border-l-4 border-l-primary">
+                  <CardHeader>
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <Icon name="Sparkles" size={20} />
+                      Статистика чистоты комнаты
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {canViewOtherStats && (
+                      <div className="flex gap-2 items-center">
+                        <Input
+                          placeholder="Номер комнаты (например, 305)"
+                          value={statsRoom}
+                          onChange={(e) => setStatsRoom(e.target.value)}
+                          className="max-w-[200px]"
+                        />
+                        {statsRoom && (
+                          <Button variant="ghost" size="sm" onClick={() => setStatsRoom('')}>
+                            Сбросить
+                          </Button>
+                        )}
                       </div>
-                    </CardContent>
-                  </Card>
-                )}
+                    )}
+                    
+                    <div className="flex gap-2">
+                      <Button
+                        variant={statsPeriod === 'week' ? 'default' : 'outline'}
+                        size="sm"
+                        onClick={() => setStatsPeriod('week')}
+                      >
+                        Неделя
+                      </Button>
+                      <Button
+                        variant={statsPeriod === 'month' ? 'default' : 'outline'}
+                        size="sm"
+                        onClick={() => setStatsPeriod('month')}
+                      >
+                        Месяц
+                      </Button>
+                      <Button
+                        variant={statsPeriod === 'all' ? 'default' : 'outline'}
+                        size="sm"
+                        onClick={() => setStatsPeriod('all')}
+                      >
+                        Всё время
+                      </Button>
+                    </div>
+
+                    {displayRoom && (
+                      <>
+                        {todayScore && (
+                          <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
+                            <div>
+                              <p className="text-sm font-medium mb-1">Оценка за сегодня</p>
+                              <p className="text-xs text-muted-foreground">Комната {displayRoom} • {todayScore.inspector}</p>
+                            </div>
+                            <div className={`px-6 py-3 rounded-lg border-2 ${getScoreColor(todayScore.score)}`}>
+                              <div className="text-3xl font-bold text-center">{todayScore.score}</div>
+                            </div>
+                          </div>
+                        )}
+
+                        {roomScores.length > 0 && (
+                          <div className="space-y-3">
+                            <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
+                              <div>
+                                <p className="text-sm font-medium">Средний балл</p>
+                                <p className="text-xs text-muted-foreground">
+                                  {statsPeriod === 'week' ? 'За неделю' : statsPeriod === 'month' ? 'За месяц' : 'За всё время'}
+                                </p>
+                              </div>
+                              <div className={`px-6 py-3 rounded-lg border-2 ${avgScore ? getScoreColor(Math.round(avgScore)) : 'bg-gray-50'}`}>
+                                <div className="text-3xl font-bold text-center">{avgScore?.toFixed(1) || '—'}</div>
+                              </div>
+                            </div>
+
+                            <div className="space-y-2">
+                              <p className="text-sm font-medium">История оценок:</p>
+                              <div className="space-y-1 max-h-[200px] overflow-y-auto">
+                                {roomScores.slice().reverse().map((score, idx) => (
+                                  <div key={idx} className="flex items-center justify-between p-2 bg-muted/30 rounded text-sm">
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-muted-foreground">{formatDate(score.date)}</span>
+                                      <span className="text-xs text-muted-foreground">• {score.inspector}</span>
+                                    </div>
+                                    <Badge className={getScoreColor(score.score)}>{score.score}</Badge>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {roomScores.length === 0 && !todayScore && (
+                          <p className="text-sm text-muted-foreground text-center py-4">
+                            Нет данных за выбранный период
+                          </p>
+                        )}
+                      </>
+                    )}
+                  </CardContent>
+                </Card>
                 
                 {canManageAnnouncements && (
                   <div className="mb-6 flex justify-end">

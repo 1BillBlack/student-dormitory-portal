@@ -73,6 +73,33 @@ export const getTodayRoomScore = (room: string): CleanlinessScore | undefined =>
   return data[floor]?.[today]?.[room];
 };
 
+export const getRoomScores = (room: string, period: 'week' | 'month' | 'all'): CleanlinessScore[] => {
+  const data = getCleanlinessData();
+  const floor = Math.floor(parseInt(room) / 100);
+  const floorData = data[floor];
+  
+  if (!floorData) return [];
+  
+  const now = new Date();
+  const scores: CleanlinessScore[] = [];
+  
+  Object.entries(floorData).forEach(([date, rooms]) => {
+    const scoreDate = new Date(date);
+    const daysDiff = Math.floor((now.getTime() - scoreDate.getTime()) / (1000 * 60 * 60 * 24));
+    
+    let include = false;
+    if (period === 'week' && daysDiff <= 7) include = true;
+    if (period === 'month' && daysDiff <= 30) include = true;
+    if (period === 'all') include = true;
+    
+    if (include && rooms[room]) {
+      scores.push(rooms[room]);
+    }
+  });
+  
+  return scores.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+};
+
 const formatDate = (dateStr: string): string => {
   const date = new Date(dateStr);
   const day = String(date.getDate()).padStart(2, '0');
@@ -239,9 +266,11 @@ export const CleanlinessPanel = ({ currentUser, users }: CleanlinesPanelProps) =
     if (canViewAllFloors()) return [2, 3, 4, 5];
     
     const floors: number[] = [];
+    const validFloors = [2, 3, 4, 5];
+    
     if (!currentUser.positions) {
-      // Если нет должностей, но есть комната — показываем этаж комнаты
-      return userFloor ? [userFloor] : [];
+      // Если нет должностей, но есть комната — показываем этаж комнаты (только если валидный)
+      return userFloor && validFloors.includes(userFloor) ? [userFloor] : [];
     }
     
     currentUser.positions.forEach(position => {
@@ -249,15 +278,15 @@ export const CleanlinessPanel = ({ currentUser, users }: CleanlinesPanelProps) =
         const match = position.match(/floor_(\d)_/);
         if (match) {
           const floor = parseInt(match[1]);
-          if (!floors.includes(floor)) {
+          if (validFloors.includes(floor) && !floors.includes(floor)) {
             floors.push(floor);
           }
         }
       }
     });
     
-    // Добавляем этаж комнаты, если его нет в списке
-    if (userFloor && !floors.includes(userFloor)) {
+    // Добавляем этаж комнаты, если его нет в списке (только если валидный)
+    if (userFloor && validFloors.includes(userFloor) && !floors.includes(userFloor)) {
       floors.push(userFloor);
     }
     
