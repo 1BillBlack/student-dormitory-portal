@@ -211,6 +211,9 @@ export const CleanlinessPanel = ({ currentUser, users }: CleanlinesPanelProps) =
     ? getFloorFromRoom(currentUser.room) 
     : getUserFloorFromPosition();
 
+  const userFloors = getUserFloors();
+  const availableFloors = userFloors.length > 0 ? userFloors : (userFloor ? [userFloor] : []);
+
   useEffect(() => {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored) {
@@ -460,9 +463,6 @@ export const CleanlinessPanel = ({ currentUser, users }: CleanlinesPanelProps) =
   const isFloorClosed = (date: string, floor: number): boolean => {
     return settings.closedFloors[date]?.includes(floor) || false;
   };
-
-  const userFloors = getUserFloors();
-  const availableFloors = userFloors.length > 0 ? userFloors : (userFloor ? [userFloor] : []);
 
   const dates = viewMode === 'week' ? getWeekDates(periodOffset) : getMonthDates(periodOffset);
   const workingDates = dates.filter(date => isWorkingDay(date, settings));
