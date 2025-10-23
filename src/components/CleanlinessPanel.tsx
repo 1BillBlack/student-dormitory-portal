@@ -240,7 +240,7 @@ export const CleanlinessPanel = ({ currentUser, users }: CleanlinesPanelProps) =
   };
 
   const canCloseFloors = (): boolean => {
-    return ['manager', 'admin'].includes(currentUser.role);
+    return ['manager', 'admin', 'moderator'].includes(currentUser.role);
   };
 
   const canEditAnyFloor = (): boolean => {
