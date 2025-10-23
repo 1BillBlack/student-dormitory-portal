@@ -215,127 +215,130 @@ export const Dashboard = () => {
           </TabsList>
 
           <TabsContent value="home" className="space-y-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
-              <Card className="cursor-pointer hover:shadow-lg transition-all" onClick={() => setActiveTab('notifications')}>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-base flex items-center gap-2">
-                    <Icon name="Bell" size={20} className="text-primary" />
-                    Уведомления
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-muted-foreground">Объявления и оценки за чистоту</p>
-                </CardContent>
-              </Card>
-              
-              <Card className="cursor-pointer hover:shadow-lg transition-all" onClick={() => setActiveTab('profile')}>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-base flex items-center gap-2">
-                    <Icon name="User" size={20} className="text-primary" />
-                    Профиль
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-muted-foreground">Личные данные и настройки</p>
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
+            <Tabs defaultValue="notifications" className="w-full">
+              <TabsList className="grid w-full grid-cols-2 mb-6">
+                <TabsTrigger value="notifications" className="gap-2">
+                  <Icon name="Bell" size={18} />
+                  Уведомления
+                </TabsTrigger>
+                <TabsTrigger value="profile" className="gap-2">
+                  <Icon name="User" size={18} />
+                  Профиль
+                </TabsTrigger>
+              </TabsList>
 
-          <TabsContent value="notifications" className="space-y-4">
-            {user?.room && todayScore && (
-              <Card className="mb-6 border-l-4 border-l-primary">
-                <CardHeader>
-                  <CardTitle className="text-base flex items-center gap-2">
-                    <Icon name="Sparkles" size={20} />
-                    Оценка за чистоту вашей комнаты
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-muted-foreground mb-1">Комната {user.room} • Сегодня</p>
-                      <p className="text-xs text-muted-foreground">Проверяющий: {todayScore.inspector}</p>
-                    </div>
-                    <div className={`px-6 py-3 rounded-lg border-2 ${getScoreColor(todayScore.score)}`}>
-                      <div className="text-3xl font-bold text-center">{todayScore.score}</div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-            
-            {canManageAnnouncements && (
-              <div className="mb-6 flex justify-end">
-                <CreateAnnouncementDialog onAdd={handleAddAnnouncement} />
-              </div>
-            )}
-            {announcements.map((announcement, index) => (
-              <Card key={announcement.id} className="animate-slide-in hover:shadow-lg transition-shadow" style={{ animationDelay: `${index * 100}ms` }}>
-                <CardHeader>
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex-1">
-                      <CardTitle className="text-lg">{announcement.title}</CardTitle>
-                      <CardDescription className="flex items-center gap-2 mt-1">
-                        <Icon name="Calendar" size={14} />
-                        {formatDate(announcement.date)}
-                      </CardDescription>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Badge variant={getPriorityColor(announcement.priority)}>
-                        {announcement.priority === 'high' ? 'Важно' : 'Обычное'}
-                      </Badge>
-                      {canManageAnnouncements && (
-                        <div className="flex gap-1">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => setEditingAnnouncement(announcement)}
-                          >
-                            <Icon name="Pencil" size={16} />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => setDeletingId(announcement.id)}
-                          >
-                            <Icon name="Trash2" size={16} className="text-destructive" />
-                          </Button>
+              <TabsContent value="notifications" className="space-y-4">
+                {user?.room && todayScore && (
+                  <Card className="border-l-4 border-l-primary">
+                    <CardHeader>
+                      <CardTitle className="text-base flex items-center gap-2">
+                        <Icon name="Sparkles" size={20} />
+                        Оценка за чистоту вашей комнаты
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm text-muted-foreground mb-1">Комната {user.room} • Сегодня</p>
+                          <p className="text-xs text-muted-foreground">Проверяющий: {todayScore.inspector}</p>
                         </div>
+                        <div className={`px-6 py-3 rounded-lg border-2 ${getScoreColor(todayScore.score)}`}>
+                          <div className="text-3xl font-bold text-center">{todayScore.score}</div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+                
+                {canManageAnnouncements && (
+                  <div className="mb-6 flex justify-end">
+                    <CreateAnnouncementDialog onAdd={handleAddAnnouncement} />
+                  </div>
+                )}
+                {announcements.map((announcement, index) => (
+                  <Card key={announcement.id} className="animate-slide-in hover:shadow-lg transition-shadow" style={{ animationDelay: `${index * 100}ms` }}>
+                    <CardHeader>
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex-1">
+                          <CardTitle className="text-lg">{announcement.title}</CardTitle>
+                          <CardDescription className="flex items-center gap-2 mt-1">
+                            <Icon name="Calendar" size={14} />
+                            {formatDate(announcement.date)}
+                          </CardDescription>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Badge variant={getPriorityColor(announcement.priority)}>
+                            {announcement.priority === 'high' ? 'Важно' : 'Обычное'}
+                          </Badge>
+                          {canManageAnnouncements && (
+                            <div className="flex gap-1">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => setEditingAnnouncement(announcement)}
+                              >
+                                <Icon name="Pencil" size={16} />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => setDeletingId(announcement.id)}
+                              >
+                                <Icon name="Trash2" size={16} className="text-destructive" />
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-muted-foreground">{announcement.content}</p>
+                    </CardContent>
+                  </Card>
+                ))}
+              </TabsContent>
+
+              <TabsContent value="profile" className="space-y-4">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Личная информация</CardTitle>
+                    <CardDescription>Ваши данные в системе</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="grid grid-cols-[120px_1fr] gap-4 text-sm">
+                      <span className="text-muted-foreground">Имя:</span>
+                      <span className="font-medium">{user?.name}</span>
+                      
+                      <span className="text-muted-foreground">Роль:</span>
+                      <span className="font-medium">{getRoleName(user?.role || '')}</span>
+                      
+                      {user?.room && (
+                        <>
+                          <span className="text-muted-foreground">Комната:</span>
+                          <span className="font-medium">{user.room}</span>
+                        </>
+                      )}
+                      
+                      {user?.positions && user.positions.length > 0 && (
+                        <>
+                          <span className="text-muted-foreground">Должности:</span>
+                          <div className="flex flex-wrap gap-2">
+                            {user.positions.map((position) => (
+                              <Badge key={position} variant="secondary">
+                                {getPositionName(position)}
+                              </Badge>
+                            ))}
+                          </div>
+                        </>
                       )}
                     </div>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-muted-foreground">{announcement.content}</p>
-                </CardContent>
-              </Card>
-            ))}
-            
-            <EditAnnouncementDialog
-              announcement={editingAnnouncement}
-              open={!!editingAnnouncement}
-              onOpenChange={(open) => !open && setEditingAnnouncement(null)}
-              onEdit={handleEditAnnouncement}
-            />
-            
-            <AlertDialog open={!!deletingId} onOpenChange={(open) => !open && setDeletingId(null)}>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Удалить объявление?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    Это действие нельзя отменить. Объявление будет удалено навсегда.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Отмена</AlertDialogCancel>
-                  <AlertDialogAction onClick={() => deletingId && handleDeleteAnnouncement(deletingId)}>
-                    Удалить
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            </Tabs>
           </TabsContent>
+
+
 
           <TabsContent value="duties" className="space-y-4">
             {mockDuties.map((duty, index) => (
@@ -390,65 +393,31 @@ export const Dashboard = () => {
               />
             </TabsContent>
           )}
-
-          <TabsContent value="profile" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Мой профиль</CardTitle>
-                <CardDescription>Информация о вашем аккаунте</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid gap-3">
-                  <div className="flex items-center gap-2">
-                    <Icon name="User" size={18} className="text-muted-foreground" />
-                    <div>
-                      <p className="text-sm text-muted-foreground">Имя</p>
-                      <p className="font-medium">{user?.name}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Icon name="Mail" size={18} className="text-muted-foreground" />
-                    <div>
-                      <p className="text-sm text-muted-foreground">Email</p>
-                      <p className="font-medium">{user?.email}</p>
-                    </div>
-                  </div>
-                  {user?.room && (
-                    <div className="flex items-center gap-2">
-                      <Icon name="Home" size={18} className="text-muted-foreground" />
-                      <div>
-                        <p className="text-sm text-muted-foreground">Комната</p>
-                        <p className="font-medium">{user.room}</p>
-                      </div>
-                    </div>
-                  )}
-                  <div className="flex items-center gap-2">
-                    <Icon name="Shield" size={18} className="text-muted-foreground" />
-                    <div>
-                      <p className="text-sm text-muted-foreground">Роль</p>
-                      <p className="font-medium">{getRoleName(user?.role || '')}</p>
-                    </div>
-                  </div>
-                  {user?.positions && user.positions.length > 0 && (
-                    <div className="flex items-start gap-2">
-                      <Icon name="Briefcase" size={18} className="text-muted-foreground mt-0.5" />
-                      <div className="flex-1">
-                        <p className="text-sm text-muted-foreground">Должности</p>
-                        <div className="flex flex-col gap-1 mt-1">
-                          {user.positions.map(pos => (
-                            <span key={pos} className="text-sm">
-                              {getPositionName(pos)}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
         </Tabs>
+
+        <EditAnnouncementDialog
+          announcement={editingAnnouncement}
+          open={!!editingAnnouncement}
+          onOpenChange={(open) => !open && setEditingAnnouncement(null)}
+          onEdit={handleEditAnnouncement}
+        />
+        
+        <AlertDialog open={!!deletingId} onOpenChange={(open) => !open && setDeletingId(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Удалить объявление?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Это действие нельзя отменить. Объявление будет удалено навсегда.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Отмена</AlertDialogCancel>
+              <AlertDialogAction onClick={() => deletingId && handleDeleteAnnouncement(deletingId)}>
+                Удалить
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </main>
     </div>
   );
