@@ -18,10 +18,11 @@ import { useAuth } from '@/contexts/AuthContext';
 import { CreateAnnouncementDialog } from '@/components/CreateAnnouncementDialog';
 import { EditAnnouncementDialog } from '@/components/EditAnnouncementDialog';
 import { UsersPanel } from '@/components/UsersPanel';
+import { CouncilPanel } from '@/components/CouncilPanel';
 import { useToast } from '@/hooks/use-toast';
-import { User } from '@/types/auth';
+import { User, UserPosition } from '@/types/auth';
 
-type TabType = 'announcements' | 'duties' | 'cleanliness' | 'users';
+type TabType = 'announcements' | 'duties' | 'cleanliness' | 'users' | 'council';
 
 const initialUsers: User[] = [
   { id: '1', email: 'manager@dorm.ru', name: 'Алексей Менеджеров', role: 'manager', room: '101', isFrozen: false },
@@ -60,6 +61,9 @@ export const Dashboard = () => {
 
   const canManageAnnouncements = ['manager', 'admin', 'chairman', 'vice_chairman'].includes(user?.role || '');
   const canManageUsers = ['manager', 'admin', 'chairman', 'vice_chairman'].includes(user?.role || '');
+  const hasCouncilAccess = 
+    ['manager', 'admin', 'chairman', 'vice_chairman'].includes(user?.role || '') ||
+    (user?.positions && user.positions.length > 0);
 
   const handleUpdateUser = (updatedUser: User) => {
     setUsers(users.map(u => u.id === updatedUser.id ? updatedUser : u));
@@ -75,6 +79,14 @@ export const Dashboard = () => {
 
   const handleCreateUser = (newUser: User) => {
     setUsers([...users, newUser]);
+  };
+
+  const handleUpdatePositions = (userId: string, positions: UserPosition[]) => {
+    setUsers(users.map(u => u.id === userId ? { ...u, positions } : u));
+    toast({
+      title: 'Успешно!',
+      description: 'Должности обновлены',
+    });
   };
 
   const handleAddAnnouncement = (announcement: { title: string; content: string; priority: string; date: string }) => {
@@ -159,7 +171,11 @@ export const Dashboard = () => {
         </div>
 
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as TabType)} className="animate-fade-in">
-          <TabsList className={`grid w-full mb-6 h-auto p-1 ${canManageUsers ? 'grid-cols-4' : 'grid-cols-3'}`}>
+          <TabsList className={`grid w-full mb-6 h-auto p-1 ${
+            canManageUsers && hasCouncilAccess ? 'grid-cols-5' : 
+            canManageUsers || hasCouncilAccess ? 'grid-cols-4' : 
+            'grid-cols-3'
+          }`}>
             <TabsTrigger value="announcements" className="gap-2 py-3">
               <Icon name="Megaphone" size={18} />
               <span className="hidden sm:inline">Объявления</span>
@@ -172,6 +188,12 @@ export const Dashboard = () => {
               <Icon name="Sparkles" size={18} />
               <span className="hidden sm:inline">Чистота</span>
             </TabsTrigger>
+            {hasCouncilAccess && (
+              <TabsTrigger value="council" className="gap-2 py-3">
+                <Icon name="Award" size={18} />
+                <span className="hidden sm:inline">Студсовет</span>
+              </TabsTrigger>
+            )}
             {canManageUsers && (
               <TabsTrigger value="users" className="gap-2 py-3">
                 <Icon name="Users" size={18} />
@@ -331,6 +353,16 @@ export const Dashboard = () => {
                 onUpdateUser={handleUpdateUser}
                 onDeleteUser={handleDeleteUser}
                 onCreateUser={handleCreateUser}
+                onUpdatePositions={handleUpdatePositions}
+              />
+            </TabsContent>
+          )}
+
+          {hasCouncilAccess && (
+            <TabsContent value="council" className="space-y-4">
+              <CouncilPanel
+                users={users}
+                currentUser={user!}
               />
             </TabsContent>
           )}

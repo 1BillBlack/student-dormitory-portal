@@ -20,9 +20,11 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import Icon from '@/components/ui/icon';
-import { User } from '@/types/auth';
+import { User, UserPosition } from '@/types/auth';
 import { UserManagementDialog } from '@/components/UserManagementDialog';
+import { PositionsDialog } from '@/components/PositionsDialog';
 import { useToast } from '@/hooks/use-toast';
+import { getPositionName } from '@/utils/positions';
 
 interface UsersPanelProps {
   users: User[];
@@ -30,12 +32,14 @@ interface UsersPanelProps {
   onUpdateUser: (user: User) => void;
   onDeleteUser: (userId: string) => void;
   onCreateUser: (user: User) => void;
+  onUpdatePositions: (userId: string, positions: UserPosition[]) => void;
 }
 
-export const UsersPanel = ({ users, currentUser, onUpdateUser, onDeleteUser, onCreateUser }: UsersPanelProps) => {
+export const UsersPanel = ({ users, currentUser, onUpdateUser, onDeleteUser, onCreateUser, onUpdatePositions }: UsersPanelProps) => {
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [creatingUser, setCreatingUser] = useState(false);
   const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
+  const [managingPositionsUser, setManagingPositionsUser] = useState<User | null>(null);
   const { toast } = useToast();
 
   const getRoleName = (role: string) => {
@@ -97,15 +101,26 @@ export const UsersPanel = ({ users, currentUser, onUpdateUser, onDeleteUser, onC
                       </Badge>
                     )}
                   </CardTitle>
-                  <div className="flex items-center gap-2 mt-1 text-sm text-muted-foreground">
-                    <Icon name="Mail" size={14} />
-                    {user.email}
-                    {user.room && (
-                      <>
-                        <span>•</span>
-                        <Icon name="Home" size={14} />
-                        Комната {user.room}
-                      </>
+                  <div className="space-y-1 mt-1">
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Icon name="Mail" size={14} />
+                      {user.email}
+                      {user.room && (
+                        <>
+                          <span>•</span>
+                          <Icon name="Home" size={14} />
+                          Комната {user.room}
+                        </>
+                      )}
+                    </div>
+                    {user.positions && user.positions.length > 0 && (
+                      <div className="flex flex-wrap gap-1 mt-2">
+                        {user.positions.map(pos => (
+                          <Badge key={pos} variant="outline" className="text-xs">
+                            {getPositionName(pos)}
+                          </Badge>
+                        ))}
+                      </div>
                     )}
                   </div>
                 </div>
@@ -124,6 +139,10 @@ export const UsersPanel = ({ users, currentUser, onUpdateUser, onDeleteUser, onC
                         <DropdownMenuItem onClick={() => setEditingUser(user)}>
                           <Icon name="Pencil" size={16} className="mr-2" />
                           Редактировать
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setManagingPositionsUser(user)}>
+                          <Icon name="Briefcase" size={16} className="mr-2" />
+                          Управление должностями
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => handleToggleFreeze(user)}>
                           <Icon name={user.isFrozen ? "Flame" : "Snowflake"} size={16} className="mr-2" />
@@ -167,6 +186,16 @@ export const UsersPanel = ({ users, currentUser, onUpdateUser, onDeleteUser, onC
           setCreatingUser(false);
         }}
         mode="create"
+      />
+
+      <PositionsDialog
+        user={managingPositionsUser}
+        open={!!managingPositionsUser}
+        onOpenChange={(open) => !open && setManagingPositionsUser(null)}
+        onSave={(userId, positions) => {
+          onUpdatePositions(userId, positions);
+          setManagingPositionsUser(null);
+        }}
       />
 
       <AlertDialog open={!!deletingUserId} onOpenChange={(open) => !open && setDeletingUserId(null)}>
