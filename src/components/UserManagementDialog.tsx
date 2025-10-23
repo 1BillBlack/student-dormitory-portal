@@ -17,14 +17,26 @@ import { User, UserRole } from '@/types/auth';
 
 interface UserManagementDialogProps {
   user: User | null;
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
   onSave: (user: User) => void;
-  mode: 'create' | 'edit';
-  currentUserRole: UserRole;
+  mode?: 'create' | 'edit';
+  currentUserRole?: UserRole;
+  canEditRole?: boolean;
+  trigger?: React.ReactNode;
 }
 
-export const UserManagementDialog = ({ user, open, onOpenChange, onSave, mode, currentUserRole }: UserManagementDialogProps) => {
+export const UserManagementDialog = ({ 
+  user, 
+  open: controlledOpen, 
+  onOpenChange: controlledOnOpenChange, 
+  onSave, 
+  mode = 'edit', 
+  currentUserRole, 
+  canEditRole = true,
+  trigger 
+}: UserManagementDialogProps) => {
+  const [internalOpen, setInternalOpen] = useState(false);
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
   const [role, setRole] = useState<UserRole>('member');
@@ -32,7 +44,11 @@ export const UserManagementDialog = ({ user, open, onOpenChange, onSave, mode, c
   const [newPassword, setNewPassword] = useState('');
   const { toast } = useToast();
 
+  const open = controlledOpen !== undefined ? controlledOpen : internalOpen;
+  const setOpen = controlledOnOpenChange || setInternalOpen;
+
   const canResetPassword = (): boolean => {
+    if (!currentUserRole) return false;
     return ['manager', 'admin', 'moderator'].includes(currentUserRole);
   };
 
@@ -81,12 +97,14 @@ export const UserManagementDialog = ({ user, open, onOpenChange, onSave, mode, c
       setNewPassword('');
     }
     
-    toast({
-      title: 'Успешно!',
-      description: mode === 'create' ? 'Пользователь создан' : 'Пользователь обновлён',
-    });
+    if (!trigger) {
+      toast({
+        title: 'Успешно!',
+        description: mode === 'create' ? 'Пользователь создан' : 'Пользователь обновлён',
+      });
+    }
 
-    onOpenChange(false);
+    setOpen(false);
   };
 
   const getRoleName = (role: UserRole) => {
@@ -100,7 +118,8 @@ export const UserManagementDialog = ({ user, open, onOpenChange, onSave, mode, c
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={setOpen}>
+      {trigger}
       <DialogContent className="sm:max-w-[525px]">
         <DialogHeader>
           <DialogTitle>
@@ -134,20 +153,22 @@ export const UserManagementDialog = ({ user, open, onOpenChange, onSave, mode, c
                 onChange={(e) => setName(e.target.value)}
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="user-role">Роль</Label>
-              <Select value={role} onValueChange={(v) => setRole(v as UserRole)}>
-                <SelectTrigger id="user-role">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="member">{getRoleName('member')}</SelectItem>
-                  <SelectItem value="moderator">{getRoleName('moderator')}</SelectItem>
-                  <SelectItem value="admin">{getRoleName('admin')}</SelectItem>
-                  <SelectItem value="manager">{getRoleName('manager')}</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+            {canEditRole && (
+              <div className="space-y-2">
+                <Label htmlFor="user-role">Роль</Label>
+                <Select value={role} onValueChange={(v) => setRole(v as UserRole)}>
+                  <SelectTrigger id="user-role">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="member">{getRoleName('member')}</SelectItem>
+                    <SelectItem value="moderator">{getRoleName('moderator')}</SelectItem>
+                    <SelectItem value="admin">{getRoleName('admin')}</SelectItem>
+                    <SelectItem value="manager">{getRoleName('manager')}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
             <div className="space-y-2">
               <Label htmlFor="user-room">Комната</Label>
               <Input

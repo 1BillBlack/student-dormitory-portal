@@ -25,14 +25,18 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
 import Icon from '@/components/ui/icon';
 import { useToast } from '@/hooks/use-toast';
+import { User, UserPosition } from '@/types/auth';
+import { getPositionName } from '@/utils/positions';
 
 interface Task {
   id: number;
   title: string;
   description: string;
-  assignedTo: string;
+  assignedToUsers: string[];
+  assignedToPositions: UserPosition[];
   status: 'pending' | 'in_progress' | 'completed';
   priority: 'low' | 'medium' | 'high';
   dueDate: string;
@@ -44,21 +48,25 @@ interface Task {
 interface CouncilTasksPanelProps {
   canManage: boolean;
   userName: string;
+  councilMembers: User[];
 }
 
 const STORAGE_KEY = 'council_tasks';
 
-export const CouncilTasksPanel = ({ canManage, userName }: CouncilTasksPanelProps) => {
+export const CouncilTasksPanel = ({ canManage, userName, councilMembers }: CouncilTasksPanelProps) => {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [open, setOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [deleteTaskId, setDeleteTaskId] = useState<number | null>(null);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [assignedTo, setAssignedTo] = useState('');
+  const [assignedToUsers, setAssignedToUsers] = useState<string[]>([]);
+  const [assignedToPositions, setAssignedToPositions] = useState<UserPosition[]>([]);
   const [priority, setPriority] = useState<'low' | 'medium' | 'high'>('medium');
   const [dueDate, setDueDate] = useState('');
   const { toast } = useToast();
+
+  const allPositions: UserPosition[] = ['chairman', 'vice_chairman', 'cultural_organizer', 'sports_organizer', 'media_manager', 'treasurer', 'general_member'];
 
   useEffect(() => {
     const stored = localStorage.getItem(STORAGE_KEY);
@@ -75,10 +83,19 @@ export const CouncilTasksPanel = ({ canManage, userName }: CouncilTasksPanelProp
   const handleCreateTask = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!title.trim() || !assignedTo.trim() || !dueDate) {
+    if (!title.trim() || !dueDate) {
       toast({
         title: 'Ошибка',
-        description: 'Заполните обязательные поля',
+        description: 'Заполните название и срок выполнения',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (assignedToUsers.length === 0 && assignedToPositions.length === 0) {
+      toast({
+        title: 'Ошибка',
+        description: 'Укажите хотя бы одного исполнителя или должность',
         variant: 'destructive',
       });
       return;
@@ -88,7 +105,8 @@ export const CouncilTasksPanel = ({ canManage, userName }: CouncilTasksPanelProp
       id: Date.now(),
       title,
       description,
-      assignedTo,
+      assignedToUsers,
+      assignedToPositions,
       status: 'pending',
       priority,
       dueDate,
@@ -98,9 +116,10 @@ export const CouncilTasksPanel = ({ canManage, userName }: CouncilTasksPanelProp
 
     saveTasks([newTask, ...tasks]);
     
+    const assignees = [...assignedToUsers, ...assignedToPositions.map(p => getPositionName(p))].join(', ');
     toast({
       title: 'Успешно!',
-      description: `Задача создана. Уведомление отправлено исполнителю: ${assignedTo}`,
+      description: `Задача создана. Исполнители: ${assignees}`,
     });
 
     resetForm();
@@ -109,10 +128,19 @@ export const CouncilTasksPanel = ({ canManage, userName }: CouncilTasksPanelProp
   const handleEditTask = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!editingTask || !title.trim() || !assignedTo.trim() || !dueDate) {
+    if (!editingTask || !title.trim() || !dueDate) {
       toast({
         title: 'Ошибка',
-        description: 'Заполните обязательные поля',
+        description: 'Заполните название и срок выполнения',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (assignedToUsers.length === 0 && assignedToPositions.length === 0) {
+      toast({
+        title: 'Ошибка',
+        description: 'Укажите хотя бы одного исполнителя или должность',
         variant: 'destructive',
       });
       return;
@@ -120,7 +148,7 @@ export const CouncilTasksPanel = ({ canManage, userName }: CouncilTasksPanelProp
 
     const updatedTasks = tasks.map(t => 
       t.id === editingTask.id 
-        ? { ...t, title, description, assignedTo, priority, dueDate }
+        ? { ...t, title, description, assignedToUsers, assignedToPositions, priority, dueDate }
         : t
     );
 
@@ -151,7 +179,8 @@ export const CouncilTasksPanel = ({ canManage, userName }: CouncilTasksPanelProp
   const resetForm = () => {
     setTitle('');
     setDescription('');
-    setAssignedTo('');
+    setAssignedToUsers([]);
+    setAssignedToPositions([]);
     setPriority('medium');
     setDueDate('');
     setOpen(false);
@@ -162,7 +191,8 @@ export const CouncilTasksPanel = ({ canManage, userName }: CouncilTasksPanelProp
     setEditingTask(task);
     setTitle(task.title);
     setDescription(task.description);
-    setAssignedTo(task.assignedTo);
+    setAssignedToUsers(task.assignedToUsers || []);
+    setAssignedToPositions(task.assignedToPositions || []);
     setPriority(task.priority);
     setDueDate(task.dueDate);
     setOpen(true);
@@ -274,14 +304,66 @@ export const CouncilTasksPanel = ({ canManage, userName }: CouncilTasksPanelProp
                       rows={3}
                     />
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="task-assigned">Исполнитель *</Label>
-                    <Input
-                      id="task-assigned"
-                      placeholder="Имя исполнителя"
-                      value={assignedTo}
-                      onChange={(e) => setAssignedTo(e.target.value)}
-                    />
+                  <div className="space-y-3">
+                    <Label>Исполнители (укажите хотя бы одного)</Label>
+                    
+                    <div className="space-y-2">
+                      <Label className="text-sm font-normal">Члены студсовета</Label>
+                      <div className="grid gap-2 max-h-48 overflow-y-auto border rounded-md p-3">
+                        {councilMembers.length > 0 ? (
+                          councilMembers.map(member => (
+                            <div key={member.id} className="flex items-center space-x-2">
+                              <Checkbox
+                                id={`user-${member.id}`}
+                                checked={assignedToUsers.includes(member.name)}
+                                onCheckedChange={(checked) => {
+                                  if (checked) {
+                                    setAssignedToUsers([...assignedToUsers, member.name]);
+                                  } else {
+                                    setAssignedToUsers(assignedToUsers.filter(n => n !== member.name));
+                                  }
+                                }}
+                              />
+                              <label
+                                htmlFor={`user-${member.id}`}
+                                className="text-sm cursor-pointer flex-1"
+                              >
+                                {member.name} ({member.email})
+                              </label>
+                            </div>
+                          ))
+                        ) : (
+                          <p className="text-sm text-muted-foreground">Нет членов студсовета</p>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label className="text-sm font-normal">Должности</Label>
+                      <div className="grid gap-2 border rounded-md p-3">
+                        {allPositions.map(position => (
+                          <div key={position} className="flex items-center space-x-2">
+                            <Checkbox
+                              id={`pos-${position}`}
+                              checked={assignedToPositions.includes(position)}
+                              onCheckedChange={(checked) => {
+                                if (checked) {
+                                  setAssignedToPositions([...assignedToPositions, position]);
+                                } else {
+                                  setAssignedToPositions(assignedToPositions.filter(p => p !== position));
+                                }
+                              }}
+                            />
+                            <label
+                              htmlFor={`pos-${position}`}
+                              className="text-sm cursor-pointer flex-1"
+                            >
+                              {getPositionName(position)}
+                            </label>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
@@ -338,9 +420,19 @@ export const CouncilTasksPanel = ({ canManage, userName }: CouncilTasksPanelProp
                   <CardTitle className="text-base">{task.title}</CardTitle>
                   <CardDescription className="mt-2">{task.description}</CardDescription>
                   <div className="flex flex-wrap items-center gap-3 mt-3 text-sm text-muted-foreground">
-                    <div className="flex items-center gap-1">
-                      <Icon name="User" size={14} />
-                      {task.assignedTo}
+                    <div className="flex flex-col gap-1">
+                      {task.assignedToUsers && task.assignedToUsers.length > 0 && (
+                        <div className="flex items-center gap-1">
+                          <Icon name="User" size={14} />
+                          {task.assignedToUsers.join(', ')}
+                        </div>
+                      )}
+                      {task.assignedToPositions && task.assignedToPositions.length > 0 && (
+                        <div className="flex items-center gap-1">
+                          <Icon name="Briefcase" size={14} />
+                          {task.assignedToPositions.map(p => getPositionName(p)).join(', ')}
+                        </div>
+                      )}
                     </div>
                     <div className="flex items-center gap-1">
                       <Icon name="Calendar" size={14} />

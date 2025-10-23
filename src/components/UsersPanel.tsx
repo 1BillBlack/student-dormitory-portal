@@ -75,8 +75,89 @@ export const UsersPanel = ({ users, currentUser, onUpdateUser, onDeleteUser, onC
     }
   };
 
+  const activeUsers = users.filter(u => !u.isFrozen);
+  const frozenUsers = users.filter(u => u.isFrozen);
+
+  const renderUserCard = (user: User) => (
+    <Card key={user.id} className={user.isFrozen ? 'opacity-60' : ''}>
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <div className="flex-1">
+            <CardTitle className="text-base flex items-center gap-2">
+              {user.name}
+              {user.isFrozen && (
+                <Badge variant="outline" className="gap-1">
+                  <Icon name="Snowflake" size={12} />
+                  Заморожен
+                </Badge>
+              )}
+            </CardTitle>
+            <div className="space-y-1 mt-1">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Icon name="Mail" size={14} />
+                {user.email}
+                {user.room && (
+                  <>
+                    <span>•</span>
+                    <Icon name="Home" size={14} />
+                    Комната {user.room}
+                  </>
+                )}
+              </div>
+              {user.positions && user.positions.length > 0 && (
+                <div className="flex flex-wrap gap-1 mt-2">
+                  {user.positions.map(pos => (
+                    <Badge key={pos} variant="outline" className="text-xs">
+                      {getPositionName(pos)}
+                    </Badge>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <Badge variant={getRoleBadgeVariant(user.role)}>
+              {getRoleName(user.role)}
+            </Badge>
+            {user.id !== currentUser.id && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon">
+                    <Icon name="MoreVertical" size={18} />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => setEditingUser(user)}>
+                    <Icon name="Pencil" size={16} className="mr-2" />
+                    Редактировать
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setManagingPositionsUser(user)}>
+                    <Icon name="Briefcase" size={16} className="mr-2" />
+                    Управление должностями
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleToggleFreeze(user)}>
+                    <Icon name={user.isFrozen ? "Flame" : "Snowflake"} size={16} className="mr-2" />
+                    {user.isFrozen ? 'Разморозить' : 'Заморозить'}
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem 
+                    onClick={() => setDeletingUserId(user.id)}
+                    className="text-destructive focus:text-destructive"
+                  >
+                    <Icon name="Trash2" size={16} className="mr-2" />
+                    Удалить
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+          </div>
+        </div>
+      </CardHeader>
+    </Card>
+  );
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h3 className="text-lg font-semibold">Управление пользователями</h3>
         <Button onClick={() => setCreatingUser(true)} className="gap-2">
@@ -85,85 +166,26 @@ export const UsersPanel = ({ users, currentUser, onUpdateUser, onDeleteUser, onC
         </Button>
       </div>
 
-      <div className="grid gap-4">
-        {users.map((user) => (
-          <Card key={user.id} className={user.isFrozen ? 'opacity-60' : ''}>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div className="flex-1">
-                  <CardTitle className="text-base flex items-center gap-2">
-                    {user.name}
-                    {user.isFrozen && (
-                      <Badge variant="outline" className="gap-1">
-                        <Icon name="Snowflake" size={12} />
-                        Заморожен
-                      </Badge>
-                    )}
-                  </CardTitle>
-                  <div className="space-y-1 mt-1">
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <Icon name="Mail" size={14} />
-                      {user.email}
-                      {user.room && (
-                        <>
-                          <span>•</span>
-                          <Icon name="Home" size={14} />
-                          Комната {user.room}
-                        </>
-                      )}
-                    </div>
-                    {user.positions && user.positions.length > 0 && (
-                      <div className="flex flex-wrap gap-1 mt-2">
-                        {user.positions.map(pos => (
-                          <Badge key={pos} variant="outline" className="text-xs">
-                            {getPositionName(pos)}
-                          </Badge>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Badge variant={getRoleBadgeVariant(user.role)}>
-                    {getRoleName(user.role)}
-                  </Badge>
-                  {user.id !== currentUser.id && (
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon">
-                          <Icon name="MoreVertical" size={18} />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => setEditingUser(user)}>
-                          <Icon name="Pencil" size={16} className="mr-2" />
-                          Редактировать
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => setManagingPositionsUser(user)}>
-                          <Icon name="Briefcase" size={16} className="mr-2" />
-                          Управление должностями
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleToggleFreeze(user)}>
-                          <Icon name={user.isFrozen ? "Flame" : "Snowflake"} size={16} className="mr-2" />
-                          {user.isFrozen ? 'Разморозить' : 'Заморозить'}
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem 
-                          onClick={() => setDeletingUserId(user.id)}
-                          className="text-destructive focus:text-destructive"
-                        >
-                          <Icon name="Trash2" size={16} className="mr-2" />
-                          Удалить
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  )}
-                </div>
-              </div>
-            </CardHeader>
-          </Card>
-        ))}
-      </div>
+      {activeUsers.length > 0 && (
+        <div className="space-y-3">
+          <h4 className="text-md font-medium text-muted-foreground">Активные пользователи ({activeUsers.length})</h4>
+          <div className="grid gap-4">
+            {activeUsers.map(renderUserCard)}
+          </div>
+        </div>
+      )}
+
+      {frozenUsers.length > 0 && (
+        <div className="space-y-3">
+          <h4 className="text-md font-medium text-muted-foreground flex items-center gap-2">
+            <Icon name="Snowflake" size={16} />
+            Замороженные пользователи ({frozenUsers.length})
+          </h4>
+          <div className="grid gap-4">
+            {frozenUsers.map(renderUserCard)}
+          </div>
+        </div>
+      )}
 
       <UserManagementDialog
         user={editingUser}

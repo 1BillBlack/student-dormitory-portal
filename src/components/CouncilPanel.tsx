@@ -52,7 +52,7 @@ export const CouncilPanel = ({ users, currentUser }: CouncilPanelProps) => {
       </TabsList>
 
       <TabsContent value="tasks">
-        <CouncilTasksPanel canManage={canManageTasks} userName={currentUser.name} />
+        <CouncilTasksPanel canManage={canManageTasks} userName={currentUser.name} councilMembers={councilMembers} />
       </TabsContent>
 
       <TabsContent value="members" className="space-y-4">

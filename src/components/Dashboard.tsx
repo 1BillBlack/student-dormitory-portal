@@ -24,7 +24,7 @@ import { CleanlinessPanel } from '@/components/CleanlinessPanel';
 import { useToast } from '@/hooks/use-toast';
 import { UserPosition } from '@/types/auth';
 
-type TabType = 'announcements' | 'duties' | 'cleanliness' | 'users' | 'council';
+type TabType = 'announcements' | 'duties' | 'cleanliness' | 'users' | 'council' | 'profile';
 
 
 
@@ -135,6 +135,11 @@ export const Dashboard = () => {
               <p className="text-sm font-medium">{user?.name}</p>
               <p className="text-xs text-muted-foreground">{getRoleName(user?.role || '')}</p>
             </div>
+            {user?.role === 'manager' && (
+              <Button variant="ghost" size="icon" onClick={() => setActiveTab('profile')} title="Настройки профиля">
+                <Icon name="Settings" size={20} />
+              </Button>
+            )}
             <Button variant="ghost" size="icon" onClick={logout}>
               <Icon name="LogOut" size={20} />
             </Button>
@@ -150,6 +155,7 @@ export const Dashboard = () => {
 
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as TabType)} className="animate-fade-in">
           <TabsList className={`grid w-full mb-6 h-auto p-1 ${
+            user?.role === 'manager' ? 'grid-cols-6' :
             canManageUsers && hasCouncilAccess ? 'grid-cols-5' : 
             canManageUsers || hasCouncilAccess ? 'grid-cols-4' : 
             'grid-cols-3'
@@ -176,6 +182,12 @@ export const Dashboard = () => {
               <TabsTrigger value="users" className="gap-2 py-3">
                 <Icon name="Users" size={18} />
                 <span className="hidden sm:inline">Пользователи</span>
+              </TabsTrigger>
+            )}
+            {user?.role === 'manager' && (
+              <TabsTrigger value="profile" className="gap-2 py-3">
+                <Icon name="User" size={18} />
+                <span className="hidden sm:inline">Профиль</span>
               </TabsTrigger>
             )}
           </TabsList>
@@ -302,6 +314,36 @@ export const Dashboard = () => {
                 users={users}
                 currentUser={user!}
               />
+            </TabsContent>
+          )}
+
+          {user?.role === 'manager' && (
+            <TabsContent value="profile" className="space-y-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Настройки профиля</CardTitle>
+                  <CardDescription>Редактирование личных данных</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <UserManagementDialog
+                    user={user}
+                    onSave={(updatedUser) => {
+                      updateUser(updatedUser);
+                      toast({
+                        title: 'Успешно!',
+                        description: 'Профиль обновлён',
+                      });
+                    }}
+                    canEditRole={false}
+                    trigger={
+                      <Button className="w-full">
+                        <Icon name="Pencil" size={18} className="mr-2" />
+                        Редактировать профиль
+                      </Button>
+                    }
+                  />
+                </CardContent>
+              </Card>
             </TabsContent>
           )}
         </Tabs>
