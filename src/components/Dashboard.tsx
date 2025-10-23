@@ -25,8 +25,9 @@ import { UserManagementDialog } from '@/components/UserManagementDialog';
 import { useToast } from '@/hooks/use-toast';
 import { UserPosition } from '@/types/auth';
 import { getPositionName } from '@/utils/positions';
+import { getTodayRoomScore } from '@/components/CleanlinessPanel';
 
-type TabType = 'announcements' | 'duties' | 'cleanliness' | 'admin' | 'council' | 'profile';
+type TabType = 'home' | 'notifications' | 'profile' | 'duties' | 'cleanliness' | 'admin' | 'council';
 
 
 
@@ -54,7 +55,7 @@ const formatDate = (dateStr: string): string => {
 export const Dashboard = () => {
   const [activeTab, setActiveTab] = useState<TabType>(() => {
     const savedTab = localStorage.getItem('activeTab');
-    return (savedTab as TabType) || 'announcements';
+    return (savedTab as TabType) || 'home';
   });
   const [announcements, setAnnouncements] = useState(initialAnnouncements);
   const [editingAnnouncement, setEditingAnnouncement] = useState<typeof initialAnnouncements[0] | null>(null);
@@ -74,6 +75,15 @@ export const Dashboard = () => {
     (user?.positions && user.positions.length > 0);
   const canSeeCleanlinessTab = 
     ['manager', 'admin', 'moderator'].includes(user?.role || '') || user?.room;
+
+  const todayScore = user?.room ? getTodayRoomScore(user.room) : undefined;
+
+  const getScoreColor = (score: number): string => {
+    if (score === 5) return 'bg-green-100 text-green-800 border-green-300';
+    if (score === 4) return 'bg-blue-100 text-blue-800 border-blue-300';
+    if (score === 3) return 'bg-yellow-100 text-yellow-800 border-yellow-300';
+    return 'bg-red-100 text-red-800 border-red-300';
+  };
 
   const handleDeleteUser = (userId: string) => {
     deleteUser(userId);
@@ -171,19 +181,14 @@ export const Dashboard = () => {
             gridTemplateColumns: `repeat(${[
               true,
               true,
-              true,
               canSeeCleanlinessTab,
               hasCouncilAccess,
               canManageUsers
             ].filter(Boolean).length}, minmax(0, 1fr))`
           }}>
-            <TabsTrigger value="announcements" className="gap-2 py-3">
-              <Icon name="Megaphone" size={18} />
-              <span className="hidden sm:inline">Объявления</span>
-            </TabsTrigger>
-            <TabsTrigger value="profile" className="gap-2 py-3">
-              <Icon name="User" size={18} />
-              <span className="hidden sm:inline">Профиль</span>
+            <TabsTrigger value="home" className="gap-2 py-3">
+              <Icon name="Home" size={18} />
+              <span className="hidden sm:inline">Главная</span>
             </TabsTrigger>
             <TabsTrigger value="duties" className="gap-2 py-3">
               <Icon name="ClipboardList" size={18} />
@@ -209,7 +214,57 @@ export const Dashboard = () => {
             )}
           </TabsList>
 
-          <TabsContent value="announcements" className="space-y-4">
+          <TabsContent value="home" className="space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
+              <Card className="cursor-pointer hover:shadow-lg transition-all" onClick={() => setActiveTab('notifications')}>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <Icon name="Bell" size={20} className="text-primary" />
+                    Уведомления
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-muted-foreground">Объявления и оценки за чистоту</p>
+                </CardContent>
+              </Card>
+              
+              <Card className="cursor-pointer hover:shadow-lg transition-all" onClick={() => setActiveTab('profile')}>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <Icon name="User" size={20} className="text-primary" />
+                    Профиль
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-muted-foreground">Личные данные и настройки</p>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="notifications" className="space-y-4">
+            {user?.room && todayScore && (
+              <Card className="mb-6 border-l-4 border-l-primary">
+                <CardHeader>
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <Icon name="Sparkles" size={20} />
+                    Оценка за чистоту вашей комнаты
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-muted-foreground mb-1">Комната {user.room} • Сегодня</p>
+                      <p className="text-xs text-muted-foreground">Проверяющий: {todayScore.inspector}</p>
+                    </div>
+                    <div className={`px-6 py-3 rounded-lg border-2 ${getScoreColor(todayScore.score)}`}>
+                      <div className="text-3xl font-bold text-center">{todayScore.score}</div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+            
             {canManageAnnouncements && (
               <div className="mb-6 flex justify-end">
                 <CreateAnnouncementDialog onAdd={handleAddAnnouncement} />

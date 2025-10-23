@@ -61,6 +61,18 @@ type ViewMode = 'week' | 'month';
 const STORAGE_KEY = 'cleanliness_data';
 const SETTINGS_KEY = 'cleanliness_settings';
 
+export const getCleanlinessData = (): CleanlinessData => {
+  const stored = localStorage.getItem(STORAGE_KEY);
+  return stored ? JSON.parse(stored) : {};
+};
+
+export const getTodayRoomScore = (room: string): CleanlinessScore | undefined => {
+  const data = getCleanlinessData();
+  const today = new Date().toISOString().split('T')[0];
+  const floor = Math.floor(parseInt(room) / 100);
+  return data[floor]?.[today]?.[room];
+};
+
 const formatDate = (dateStr: string): string => {
   const date = new Date(dateStr);
   const day = String(date.getDate()).padStart(2, '0');
@@ -364,6 +376,12 @@ export const CleanlinessPanel = ({ currentUser, users }: CleanlinesPanelProps) =
 
   const getScore = (floor: number, date: string, room: string): CleanlinessScore | undefined => {
     return data[floor]?.[date]?.[room];
+  };
+
+  export const getTodayScore = (data: CleanlinessData, room: string): CleanlinessScore | undefined => {
+    const today = new Date().toISOString().split('T')[0];
+    const floor = Math.floor(parseInt(room) / 100);
+    return data[floor]?.[today]?.[room];
   };
 
   const getScoreColor = (score: number): string => {
