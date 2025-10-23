@@ -195,7 +195,19 @@ export const CleanlinessPanel = ({ currentUser, users }: CleanlinesPanelProps) =
     
     const storedSettings = localStorage.getItem(SETTINGS_KEY);
     if (storedSettings) {
-      setSettings(JSON.parse(storedSettings));
+      const loadedSettings = JSON.parse(storedSettings);
+      setSettings({
+        rooms: loadedSettings.rooms || {
+          '2': getDefaultRooms(2),
+          '3': getDefaultRooms(3),
+          '4': getDefaultRooms(4),
+          '5': getDefaultRooms(5),
+        },
+        workingDays: loadedSettings.workingDays || {},
+        closedRooms: loadedSettings.closedRooms || {},
+        closedFloors: loadedSettings.closedFloors || {},
+        defaultNonWorkingDays: loadedSettings.defaultNonWorkingDays || [5, 6, 7],
+      });
     }
   }, []);
 
