@@ -62,6 +62,7 @@ export const Dashboard = () => {
   const [announcements, setAnnouncements] = useState(initialAnnouncements);
   const [editingAnnouncement, setEditingAnnouncement] = useState<typeof initialAnnouncements[0] | null>(null);
   const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
   const [statsPeriod, setStatsPeriod] = useState<'week' | 'month' | 'all'>('week');
   const [statsRoom, setStatsRoom] = useState<string>('');
   const { user, logout } = useAuth();
@@ -103,12 +104,16 @@ export const Dashboard = () => {
     return 'bg-red-100 text-red-800 border-red-300';
   };
 
-  const handleDeleteUser = (userId: string) => {
-    deleteUser(userId);
+  const confirmDeleteUser = () => {
+    if (!deletingUserId) return;
+    
+    deleteUser(deletingUserId);
     toast({
       title: 'Удалено',
       description: 'Пользователь удалён',
     });
+    
+    setDeletingUserId(null);
   };
 
   const handleUpdatePositions = (userId: string, positions: UserPosition[]) => {

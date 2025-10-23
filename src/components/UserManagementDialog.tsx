@@ -8,6 +8,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -42,6 +52,8 @@ export const UserManagementDialog = ({
   const [role, setRole] = useState<UserRole>('member');
   const [room, setRoom] = useState('');
   const [newPassword, setNewPassword] = useState('');
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [pendingData, setPendingData] = useState<User | null>(null);
   const { toast } = useToast();
 
   const open = controlledOpen !== undefined ? controlledOpen : internalOpen;
@@ -92,6 +104,18 @@ export const UserManagementDialog = ({
       isFrozen: user?.isFrozen || false,
     };
 
+    const roleChanged = mode === 'edit' && user && user.role !== role;
+    
+    if (roleChanged) {
+      setPendingData(userData);
+      setShowConfirmDialog(true);
+      return;
+    }
+
+    completeSave(userData);
+  };
+
+  const completeSave = (userData: User) => {
     onSave(userData);
 
     if (mode === 'edit' && newPassword && canResetPassword()) {
@@ -219,6 +243,26 @@ export const UserManagementDialog = ({
           </DialogFooter>
         </form>
       </DialogContent>
+
+      <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Подтвердите изменение роли</AlertDialogTitle>
+            <AlertDialogDescription>
+              Вы уверены, что хотите изменить роль пользователя {name}? Это может повлиять на его права доступа.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Отмена</AlertDialogCancel>
+            <AlertDialogAction onClick={() => {
+              if (pendingData) completeSave(pendingData);
+              setShowConfirmDialog(false);
+            }}>
+              Подтвердить
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Dialog>
   );
 };

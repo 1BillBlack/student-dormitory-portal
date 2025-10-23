@@ -8,6 +8,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import Icon from '@/components/ui/icon';
@@ -24,6 +34,7 @@ interface PositionsDialogProps {
 
 export const PositionsDialog = ({ user, open, onOpenChange, onSave }: PositionsDialogProps) => {
   const [selectedPositions, setSelectedPositions] = useState<UserPosition[]>([]);
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -45,6 +56,19 @@ export const PositionsDialog = ({ user, open, onOpenChange, onSave }: PositionsD
     
     if (!user) return;
 
+    const positionsChanged = JSON.stringify(selectedPositions.sort()) !== JSON.stringify((user.positions || []).sort());
+    
+    if (positionsChanged) {
+      setShowConfirmDialog(true);
+      return;
+    }
+
+    onOpenChange(false);
+  };
+
+  const confirmSave = () => {
+    if (!user) return;
+
     onSave(user.id, selectedPositions);
     
     toast({
@@ -52,6 +76,7 @@ export const PositionsDialog = ({ user, open, onOpenChange, onSave }: PositionsD
       description: 'Должности обновлены',
     });
 
+    setShowConfirmDialog(false);
     onOpenChange(false);
   };
 
@@ -92,6 +117,23 @@ export const PositionsDialog = ({ user, open, onOpenChange, onSave }: PositionsD
           </DialogFooter>
         </form>
       </DialogContent>
+
+      <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Подтвердите изменение должностей</AlertDialogTitle>
+            <AlertDialogDescription>
+              Вы уверены, что хотите изменить должности пользователя {user?.name}? Это может повлиять на его права доступа и обязанности.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Отмена</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmSave}>
+              Подтвердить
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Dialog>
   );
 };

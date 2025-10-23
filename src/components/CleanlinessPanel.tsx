@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -217,6 +218,7 @@ export const CleanlinessPanel = ({ currentUser, users }: CleanlinesPanelProps) =
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [roomsDialogOpen, setRoomsDialogOpen] = useState(false);
   const [newRoomNumber, setNewRoomNumber] = useState('');
+  const [deleteScoreDialog, setDeleteScoreDialog] = useState<{floor: number, date: string, room: string} | null>(null);
   const { toast } = useToast();
 
   const [settings, setSettings] = useState<CleanlinessSettings>({
@@ -407,13 +409,15 @@ export const CleanlinessPanel = ({ currentUser, users }: CleanlinesPanelProps) =
     });
   };
 
-  const handleScoreDelete = (floor: number, date: string, room: string) => {
+  const confirmScoreDelete = () => {
+    if (!deleteScoreDialog) return;
+    
+    const { floor, date, room } = deleteScoreDialog;
     const newData = { ...data };
     
     if (newData[floor]?.[date]?.[room]) {
       delete newData[floor][date][room];
       
-      // Очищаем пустые объекты
       if (Object.keys(newData[floor][date]).length === 0) {
         delete newData[floor][date];
       }
@@ -428,6 +432,8 @@ export const CleanlinessPanel = ({ currentUser, users }: CleanlinesPanelProps) =
         description: `Комната ${room}`,
       });
     }
+    
+    setDeleteScoreDialog(null);
   };
 
   const getScore = (floor: number, date: string, room: string): CleanlinessScore | undefined => {
@@ -856,7 +862,7 @@ export const CleanlinessPanel = ({ currentUser, users }: CleanlinesPanelProps) =
                                   </Select>
                                   {scoreData && (
                                     <button
-                                      onClick={() => handleScoreDelete(selectedFloor, date, room)}
+                                      onClick={() => setDeleteScoreDialog({ floor: selectedFloor, date, room })}
                                       className="absolute top-0.5 right-0.5 p-0.5 opacity-0 group-hover:opacity-100 transition-opacity bg-white rounded border shadow-sm hover:bg-red-50"
                                       title="Удалить оценку"
                                     >
@@ -949,6 +955,23 @@ export const CleanlinessPanel = ({ currentUser, users }: CleanlinesPanelProps) =
           </div>
         </CardContent>
       </Card>
+
+      <AlertDialog open={!!deleteScoreDialog} onOpenChange={(open) => !open && setDeleteScoreDialog(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Удалить оценку?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Вы уверены, что хотите удалить оценку для комнаты {deleteScoreDialog?.room}? Это действие нельзя отменить.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Отмена</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmScoreDelete} className="bg-red-600 hover:bg-red-700">
+              Удалить
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
