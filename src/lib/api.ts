@@ -26,21 +26,26 @@ async function apiRequest<T>(
     options.body = JSON.stringify(body);
   }
 
-  const response = await fetch(url, options);
-  const data = await response.json();
+  try {
+    const response = await fetch(url, options);
+    const data = await response.json();
 
-  if (!response.ok) {
-    console.error('API Error:', {
-      url,
-      status: response.status,
-      statusText: response.statusText,
-      data,
-      requestBody: body
-    });
-    throw new Error(data.error || 'API request failed');
+    if (!response.ok) {
+      console.error('API Error:', {
+        url,
+        status: response.status,
+        statusText: response.statusText,
+        data,
+        requestBody: body
+      });
+      throw new Error(data.error || 'API request failed');
+    }
+
+    return data;
+  } catch (error) {
+    console.error('Fetch error:', error, 'for', url);
+    throw error;
   }
-
-  return data;
 }
 
 export const api = {
