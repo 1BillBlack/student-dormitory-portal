@@ -214,10 +214,6 @@ export const WorkShiftsPanel = ({ currentUser: propCurrentUser }: WorkShiftsPane
     setSelectedShiftId(null);
   };
 
-  if (showArchive) {
-    return <WorkShiftsArchive currentUser={currentUser} onBack={() => setShowArchive(false)} />;
-  }
-
   if (!canManage && !isFloorHead) {
     return (
       <div className="space-y-4">
