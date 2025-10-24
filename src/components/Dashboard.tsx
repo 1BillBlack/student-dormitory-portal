@@ -459,7 +459,7 @@ export const Dashboard = () => {
                 users={users}
                 currentUser={user!}
                 onUpdateUser={updateUser}
-                onDeleteUser={handleDeleteUser}
+                onDeleteUser={(userId) => setDeletingUserId(userId)}
                 onCreateUser={createUser}
                 onUpdatePositions={handleUpdatePositions}
               />
