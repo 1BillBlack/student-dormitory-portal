@@ -61,7 +61,6 @@ export const WorkShiftsPanel = ({ currentUser: propCurrentUser }: WorkShiftsPane
   const [sortBy, setSortBy] = useState<'name' | 'room' | 'group' | 'floor'>('name');
   const [userSearch, setUserSearch] = useState('');
   const [userSortBy, setUserSortBy] = useState<'name' | 'room' | 'group' | 'position'>('name');
-  const [showArchive, setShowArchive] = useState(false);
   const [expandedUsers, setExpandedUsers] = useState<Set<string>>(new Set());
 
   const canManage = ['manager', 'admin', 'moderator'].includes(currentUser.role) || 
@@ -265,10 +264,6 @@ export const WorkShiftsPanel = ({ currentUser: propCurrentUser }: WorkShiftsPane
               <CardDescription>Управление отработками пользователей</CardDescription>
             </div>
             <div className="flex flex-wrap gap-2">
-              <Button onClick={() => setShowArchive(true)} variant="outline" size="sm">
-                <Icon name="Archive" size={16} className="mr-2" />
-                Архив
-              </Button>
               <Button onClick={() => setAssignOpen(true)} size="sm">
                 <Icon name="Plus" size={16} className="mr-2" />
                 Назначить
@@ -279,8 +274,11 @@ export const WorkShiftsPanel = ({ currentUser: propCurrentUser }: WorkShiftsPane
       </Card>
 
       <Tabs defaultValue="active">
-        <TabsList className="grid w-full grid-cols-2">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="active">Активные</TabsTrigger>
+          {canManage && (
+            <TabsTrigger value="archive">Архив</TabsTrigger>
+          )}
           <TabsTrigger value="my">Мои отработки</TabsTrigger>
         </TabsList>
 
@@ -349,6 +347,17 @@ export const WorkShiftsPanel = ({ currentUser: propCurrentUser }: WorkShiftsPane
             formatDate={formatDate}
           />
         </TabsContent>
+
+        {canManage && (
+          <TabsContent value="archive" className="space-y-4">
+            <WorkShiftsArchive
+              archivedShifts={workShifts.filter(s => s.status === 'archived')}
+              users={users}
+              currentUserId={currentUser.id}
+              canViewAll={canManage}
+            />
+          </TabsContent>
+        )}
       </Tabs>
 
       <AssignWorkShiftDialog

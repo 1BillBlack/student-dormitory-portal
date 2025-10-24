@@ -53,7 +53,19 @@ export const CleanlinessTable = ({
     const floorClosed = isFloorClosed(date, floor);
     
     if (roomClosed) {
-      return <span className="text-xs text-gray-400">Закрыта</span>;
+      if (editMode && canEdit) {
+        return (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-6 w-6 p-0"
+            onClick={() => onToggleRoomClosed(date, room)}
+          >
+            <Icon name="Lock" size={14} className="text-gray-400" />
+          </Button>
+        );
+      }
+      return <Icon name="Lock" size={14} className="text-gray-400" />;
     }
     
     if (floorClosed) {
@@ -61,7 +73,7 @@ export const CleanlinessTable = ({
     }
     
     if (!working) {
-      return <span className="text-xs text-gray-400">Вых</span>;
+      return null;
     }
     
     const canEdit = canEditCell(floor, date, room);
@@ -95,15 +107,7 @@ export const CleanlinessTable = ({
               </Button>
             )}
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            className="h-6 text-xs px-2"
-            onClick={() => onToggleRoomClosed(date, room)}
-          >
-            <Icon name="Lock" size={10} className="mr-1" />
-            Закрыть
-          </Button>
+
         </div>
       );
     }
@@ -125,6 +129,19 @@ export const CleanlinessTable = ({
     const scores = rooms.map(room => getScore(floor, date, room));
     return calculateAverageScore(scores);
   };
+
+  const filteredDates = dates.filter(date => {
+    const working = isWorkingDay(date, settings);
+    if (!working) {
+      const hasAnyScore = rooms.some(room => {
+        const score = getScore(floor, date, room);
+        return score !== undefined;
+      });
+      const hasAnyClosed = rooms.some(room => isRoomClosed(date, room));
+      return hasAnyScore || hasAnyClosed;
+    }
+    return true;
+  });
 
   return (
     <div className="overflow-x-auto">
@@ -165,7 +182,7 @@ export const CleanlinessTable = ({
               <td className="sticky left-0 z-10 bg-background border border-border p-2 font-medium text-sm">
                 {room}
               </td>
-              {dates.map((date) => {
+              {filteredDates.map((date) => {
                 const working = isWorkingDay(date, settings);
                 const roomClosed = isRoomClosed(date, room);
                 const floorClosed = isFloorClosed(date, floor);
@@ -190,16 +207,17 @@ export const CleanlinessTable = ({
             <td className="sticky left-0 z-10 bg-muted border border-border p-2 text-sm">
               Средний балл
             </td>
-            {dates.map((date) => {
+            {filteredDates.map((date) => {
               const avgScore = getAverageScoreForDate(date);
               const isGeneralCleaning = date === generalCleaningDate;
+              const working = isWorkingDay(date, settings);
               
               return (
                 <td
                   key={`avg-${date}`}
                   className={`border border-border p-2 text-center ${
                     isGeneralCleaning ? 'bg-purple-50' : ''
-                  }`}
+                  } ${!working ? 'bg-muted/30' : ''}`}
                 >
                   {avgScore !== null ? (
                     <span className="text-sm font-semibold">{avgScore.toFixed(1)}</span>
