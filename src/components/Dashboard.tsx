@@ -307,7 +307,7 @@ export const Dashboard = () => {
               true,
               canSeeCleanlinessTab,
               hasCouncilAccess,
-              canManageUsers
+              canSeeAdminPanel
             ].filter(Boolean).length}, minmax(0, 1fr))`
           }}>
             <TabsTrigger value="home" className="gap-2 py-3">
