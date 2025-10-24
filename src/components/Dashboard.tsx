@@ -301,6 +301,9 @@ export const Dashboard = () => {
                       <span className="text-muted-foreground">Имя:</span>
                       <span className="font-medium">{user?.name}</span>
                       
+                      <span className="text-muted-foreground">Email:</span>
+                      <span className="font-medium">{user?.email}</span>
+                      
                       <span className="text-muted-foreground">Роль:</span>
                       <span className="font-medium">{getRoleName(user?.role || '')}</span>
                       
@@ -308,6 +311,27 @@ export const Dashboard = () => {
                         <>
                           <span className="text-muted-foreground">Комната:</span>
                           <span className="font-medium">{user.room}</span>
+                        </>
+                      )}
+
+                      {user?.group && (
+                        <>
+                          <span className="text-muted-foreground">Группа:</span>
+                          <span className="font-medium">{user.group}</span>
+                        </>
+                      )}
+
+                      {user?.group && (
+                        <>
+                          <span className="text-muted-foreground">Курс:</span>
+                          <span className="font-medium">{user.group.charAt(0)}</span>
+                        </>
+                      )}
+
+                      {user?.studyYears && (
+                        <>
+                          <span className="text-muted-foreground">Срок обучения:</span>
+                          <span className="font-medium">{user.studyYears} {user.studyYears === 1 ? 'год' : user.studyYears < 5 ? 'года' : 'лет'}</span>
                         </>
                       )}
                       

@@ -26,6 +26,9 @@ export interface User {
   positions?: UserPosition[];
   room?: string;
   isFrozen?: boolean;
+  group?: string;
+  studyYears?: number;
+  registeredAt?: string;
 }
 
 export interface AuthState {

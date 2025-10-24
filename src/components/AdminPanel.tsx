@@ -13,7 +13,7 @@ interface AdminPanelProps {
   onUpdatePositions: (userId: string, positions: UserPosition[]) => void;
 }
 
-type AdminTabType = 'users' | 'settings';
+type AdminTabType = 'users' | 'floors' | 'settings';
 
 export const AdminPanel = ({ 
   users, 
@@ -28,10 +28,14 @@ export const AdminPanel = ({
   return (
     <div className="space-y-4">
       <Tabs value={activeAdminTab} onValueChange={(v) => setActiveAdminTab(v as AdminTabType)}>
-        <TabsList className="grid w-full grid-cols-2 mb-6">
+        <TabsList className="grid w-full grid-cols-3 mb-6">
           <TabsTrigger value="users" className="gap-2">
             <Icon name="Users" size={18} />
             <span>Пользователи</span>
+          </TabsTrigger>
+          <TabsTrigger value="floors" className="gap-2">
+            <Icon name="Building" size={18} />
+            <span>Этажи</span>
           </TabsTrigger>
           <TabsTrigger value="settings" className="gap-2">
             <Icon name="Settings" size={18} />
@@ -48,6 +52,12 @@ export const AdminPanel = ({
             onCreateUser={onCreateUser}
             onUpdatePositions={onUpdatePositions}
           />
+        </TabsContent>
+
+        <TabsContent value="floors" className="space-y-4">
+          <div className="text-center text-muted-foreground py-8">
+            Управление этажами будет доступно позже
+          </div>
         </TabsContent>
 
         <TabsContent value="settings" className="space-y-4">

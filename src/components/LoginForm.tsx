@@ -7,14 +7,18 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import Icon from '@/components/ui/icon';
 import { useAuth } from '@/contexts/AuthContext';
+import { RegisterForm } from '@/components/RegisterForm';
+import { useUsers } from '@/contexts/UsersContext';
 
 export const LoginForm = () => {
+  const [showRegister, setShowRegister] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const { login } = useAuth();
+  const { createUser } = useUsers();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,6 +38,26 @@ export const LoginForm = () => {
       setIsLoading(false);
     }
   };
+
+  const handleRegister = async (email: string, password: string, name: string, group: string, studyYears: number) => {
+    const newUser = {
+      id: Date.now().toString(),
+      email,
+      name,
+      role: 'member' as const,
+      group,
+      studyYears,
+      registeredAt: new Date().toISOString(),
+      isFrozen: false,
+    };
+    
+    createUser(newUser);
+    await login(email, password, false);
+  };
+
+  if (showRegister) {
+    return <RegisterForm onRegister={handleRegister} onBackToLogin={() => setShowRegister(false)} />;
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/10 via-background to-secondary/10 p-4">
@@ -119,6 +143,17 @@ export const LoginForm = () => {
                   Войти
                 </>
               )}
+            </Button>
+
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full h-12"
+              onClick={() => setShowRegister(true)}
+              disabled={isLoading}
+            >
+              <Icon name="UserPlus" size={20} className="mr-2" />
+              Зарегистрироваться
             </Button>
 
             {error && (

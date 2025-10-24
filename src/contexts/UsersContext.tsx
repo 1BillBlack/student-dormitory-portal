@@ -1,7 +1,9 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User, UserPosition } from '@/types/auth';
+import { processAllUsers } from '@/utils/courseManagement';
 
 const USERS_STORAGE_KEY = 'dormitory_users';
+const LAST_COURSE_UPDATE_KEY = 'last_course_update';
 
 const initialUsers: User[] = [
   { id: '1', email: 'manager@dorm.ru', name: 'Алексей Менеджеров', role: 'manager', room: '101', isFrozen: false, positions: [] },
@@ -35,6 +37,29 @@ export const UsersProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
     return initialUsers;
   });
+
+  useEffect(() => {
+    const checkAndUpdateCourses = () => {
+      const lastUpdate = localStorage.getItem(LAST_COURSE_UPDATE_KEY);
+      const currentDate = new Date();
+      const currentYear = currentDate.getFullYear();
+      const isAfterAugust31 = currentDate.getMonth() > 7 || (currentDate.getMonth() === 7 && currentDate.getDate() >= 31);
+      
+      const shouldUpdate = !lastUpdate || 
+        (isAfterAugust31 && parseInt(lastUpdate) < currentYear);
+
+      if (shouldUpdate) {
+        const { updatedUsers, deletedUserIds } = processAllUsers(users);
+        
+        if (deletedUserIds.length > 0 || JSON.stringify(updatedUsers) !== JSON.stringify(users)) {
+          setUsers(updatedUsers);
+          localStorage.setItem(LAST_COURSE_UPDATE_KEY, currentYear.toString());
+        }
+      }
+    };
+
+    checkAndUpdateCourses();
+  }, []);
 
   useEffect(() => {
     localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(users));

@@ -51,6 +51,8 @@ export const UserManagementDialog = ({
   const [name, setName] = useState('');
   const [role, setRole] = useState<UserRole>('member');
   const [room, setRoom] = useState('');
+  const [group, setGroup] = useState('');
+  const [studyYears, setStudyYears] = useState<number>(4);
   const [newPassword, setNewPassword] = useState('');
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [pendingData, setPendingData] = useState<User | null>(null);
@@ -75,11 +77,15 @@ export const UserManagementDialog = ({
       setName(user.name);
       setRole(user.role);
       setRoom(user.room || '');
+      setGroup(user.group || '');
+      setStudyYears(user.studyYears || 4);
     } else if (mode === 'create') {
       setEmail('');
       setName('');
       setRole('member');
       setRoom('');
+      setGroup('');
+      setStudyYears(4);
     }
   }, [user, mode, open]);
 
@@ -101,6 +107,9 @@ export const UserManagementDialog = ({
       name,
       role,
       room: room || undefined,
+      group: group || undefined,
+      studyYears: studyYears || undefined,
+      registeredAt: user?.registeredAt || new Date().toISOString(),
       isFrozen: user?.isFrozen || false,
     };
 
@@ -207,6 +216,37 @@ export const UserManagementDialog = ({
                 onChange={(e) => setRoom(e.target.value)}
               />
             </div>
+            {(['manager', 'admin', 'moderator'].includes(currentUserRole || '') || mode === 'create') && (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="user-group">Номер группы</Label>
+                  <Input
+                    id="user-group"
+                    placeholder="2111 или 2-МОС"
+                    value={group}
+                    onChange={(e) => setGroup(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="user-study-years">Срок обучения</Label>
+                  <Select 
+                    value={studyYears.toString()} 
+                    onValueChange={(v) => setStudyYears(parseInt(v))}
+                  >
+                    <SelectTrigger id="user-study-years">
+                      <SelectValue placeholder="Выберите срок обучения" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="2">2 года</SelectItem>
+                      <SelectItem value="3">3 года</SelectItem>
+                      <SelectItem value="4">4 года</SelectItem>
+                      <SelectItem value="5">5 лет</SelectItem>
+                      <SelectItem value="6">6 лет</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </>
+            )}
             {mode === 'edit' && canResetPassword() && (
               <div className="space-y-2 pt-4 border-t">
                 <Label htmlFor="user-password">Новый пароль</Label>
