@@ -16,7 +16,10 @@ export type LogAction =
   | 'role_assigned'
   | 'role_removed'
   | 'position_assigned'
-  | 'position_removed';
+  | 'position_removed'
+  | 'work_shift_assigned'
+  | 'work_shift_completed'
+  | 'work_shift_deleted';
 
 export interface Log {
   id: number;

@@ -38,6 +38,9 @@ const getActionName = (action: Log['action']) => {
     role_removed: 'Снята роль',
     position_assigned: 'Назначена должность',
     position_removed: 'Снята должность',
+    work_shift_assigned: 'Назначены отработки',
+    work_shift_completed: 'Списаны отработки',
+    work_shift_deleted: 'Удалены отработки',
   };
   return actions[action] || action;
 };
@@ -47,6 +50,7 @@ const getActionIcon = (action: Log['action']) => {
   if (action.includes('announcement')) return 'Bell';
   if (action.includes('task')) return 'CheckSquare';
   if (action.includes('role') || action.includes('position')) return 'UserCog';
+  if (action.includes('work_shift')) return 'Briefcase';
   return 'Activity';
 };
 
@@ -72,6 +76,7 @@ const getActionCategory = (action: LogAction): string => {
   if (action.includes('announcement')) return 'announcement';
   if (action.includes('task')) return 'task';
   if (action.includes('role') || action.includes('position')) return 'user';
+  if (action.includes('work_shift')) return 'work_shift';
   return 'other';
 };
 
@@ -146,6 +151,7 @@ export const LogsPanel = ({ canDelete = false }: LogsPanelProps) => {
             <SelectItem value="announcement">Объявления</SelectItem>
             <SelectItem value="task">Задачи</SelectItem>
             <SelectItem value="user">Пользователи</SelectItem>
+            <SelectItem value="work_shift">Отработки</SelectItem>
           </SelectContent>
         </Select>
         {canDelete && (

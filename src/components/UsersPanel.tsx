@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -24,7 +26,7 @@ import { User, UserPosition } from '@/types/auth';
 import { UserManagementDialog } from '@/components/UserManagementDialog';
 import { PositionsDialog } from '@/components/PositionsDialog';
 import { useToast } from '@/hooks/use-toast';
-import { getPositionName, sortPositionsByRank } from '@/utils/positions';
+import { getPositionName, sortPositionsByRank, getAllPositions } from '@/utils/positions';
 import { canManageUser } from '@/utils/roles';
 
 interface UsersPanelProps {
@@ -41,6 +43,9 @@ export const UsersPanel = ({ users, currentUser, onUpdateUser, onDeleteUser, onC
   const [creatingUser, setCreatingUser] = useState(false);
   const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
   const [managingPositionsUser, setManagingPositionsUser] = useState<User | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterRole, setFilterRole] = useState<string>('all');
+  const [filterPosition, setFilterPosition] = useState<string>('all');
   const { toast } = useToast();
 
   const getRoleName = (role: string) => {
@@ -76,8 +81,23 @@ export const UsersPanel = ({ users, currentUser, onUpdateUser, onDeleteUser, onC
     }
   };
 
-  const activeUsers = users.filter(u => !u.isFrozen);
-  const frozenUsers = users.filter(u => u.isFrozen);
+  const filteredUsers = users.filter(user => {
+    const matchesSearch = 
+      user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (user.room && user.room.includes(searchQuery));
+
+    const matchesRole = filterRole === 'all' || user.role === filterRole;
+
+    const matchesPosition = 
+      filterPosition === 'all' || 
+      (user.positions && user.positions.includes(filterPosition as UserPosition));
+
+    return matchesSearch && matchesRole && matchesPosition;
+  });
+
+  const activeUsers = filteredUsers.filter(u => !u.isFrozen);
+  const frozenUsers = filteredUsers.filter(u => u.isFrozen);
 
   const canManageThisUser = (targetUser: User): boolean => {
     if (targetUser.id === currentUser.id) return true;
@@ -187,6 +207,39 @@ export const UsersPanel = ({ users, currentUser, onUpdateUser, onDeleteUser, onC
           <span className="hidden sm:inline">Создать пользователя</span>
           <span className="sm:hidden">Создать</span>
         </Button>
+      </div>
+
+      <div className="grid gap-3 sm:grid-cols-3">
+        <Input
+          placeholder="Поиск по имени, почте, комнате..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+        />
+        <Select value={filterRole} onValueChange={setFilterRole}>
+          <SelectTrigger>
+            <SelectValue placeholder="Роль" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Все роли</SelectItem>
+            <SelectItem value="manager">Менеджер</SelectItem>
+            <SelectItem value="admin">Администратор</SelectItem>
+            <SelectItem value="moderator">Модератор</SelectItem>
+            <SelectItem value="member">Участник</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select value={filterPosition} onValueChange={setFilterPosition}>
+          <SelectTrigger>
+            <SelectValue placeholder="Должность" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Все должности</SelectItem>
+            {getAllPositions().map(pos => (
+              <SelectItem key={pos} value={pos}>
+                {getPositionName(pos)}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       {activeUsers.length > 0 && (

@@ -26,6 +26,7 @@ import { EditAnnouncementDialog } from '@/components/EditAnnouncementDialog';
 import { AdminPanel } from '@/components/AdminPanel';
 import { CouncilPanel } from '@/components/CouncilPanel';
 import { CleanlinessPanel } from '@/components/CleanlinessPanel';
+import { WorkShiftsPanel } from '@/components/WorkShiftsPanel';
 import { UserManagementDialog } from '@/components/UserManagementDialog';
 import { ChangeRoomDialog } from '@/components/ChangeRoomDialog';
 import { NotificationsPopover } from '@/components/NotificationsPopover';
@@ -34,7 +35,7 @@ import { UserPosition } from '@/types/auth';
 import { getPositionName, sortPositionsByRank } from '@/utils/positions';
 import { getTodayRoomScore, getRoomScores } from '@/components/CleanlinessPanel';
 
-type TabType = 'home' | 'notifications' | 'profile' | 'duties' | 'cleanliness' | 'admin' | 'council';
+type TabType = 'home' | 'notifications' | 'profile' | 'duties' | 'cleanliness' | 'admin' | 'council' | 'workshifts';
 
 
 
@@ -526,8 +527,8 @@ export const Dashboard = () => {
                 <span className="hidden sm:inline">Чистота</span>
               </TabsTrigger>
             )}
-            <TabsTrigger value="duties" className="gap-2 py-3">
-              <Icon name="ClipboardList" size={18} />
+            <TabsTrigger value="workshifts" className="gap-2 py-3">
+              <Icon name="Briefcase" size={18} />
               <span className="hidden sm:inline">Отработки</span>
             </TabsTrigger>
             {hasCouncilAccess && (
@@ -801,30 +802,8 @@ export const Dashboard = () => {
 
 
 
-          <TabsContent value="duties" className="space-y-4">
-            {mockDuties.map((duty, index) => (
-              <Card key={duty.id} className="animate-slide-in hover:shadow-lg transition-shadow" style={{ animationDelay: `${index * 100}ms` }}>
-                <CardHeader>
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex-1">
-                      <CardTitle className="text-lg">{duty.task}</CardTitle>
-                      <CardDescription className="mt-1">
-                        {duty.student} • Комната {duty.room}
-                      </CardDescription>
-                    </div>
-                    <Badge variant={getStatusColor(duty.status)}>
-                      {duty.status === 'completed' ? 'Выполнено' : 'В ожидании'}
-                    </Badge>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Icon name="Calendar" size={14} />
-                    <span>Дата: {formatDate(duty.date)}</span>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+          <TabsContent value="workshifts" className="space-y-4">
+            <WorkShiftsPanel currentUser={user!} />
           </TabsContent>
 
           {canSeeCleanlinessTab && (

@@ -9,6 +9,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { AnnouncementsProvider } from "@/contexts/AnnouncementsContext";
 import { NotificationsProvider } from "@/contexts/NotificationsContext";
 import { LogsProvider } from "@/contexts/LogsContext";
+import { WorkShiftsProvider } from "@/contexts/WorkShiftsContext";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 
@@ -19,21 +20,23 @@ const App = () => (
     <TooltipProvider>
       <UsersProvider>
         <AnnouncementsProvider>
-          <LogsProvider>
-            <NotificationsProvider>
-              <AuthProvider>
-                <Toaster />
-                <Sonner />
-                <BrowserRouter>
-                  <Routes>
-                    <Route path="/" element={<Index />} />
-                    {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-                    <Route path="*" element={<NotFound />} />
-                  </Routes>
-                </BrowserRouter>
-              </AuthProvider>
-            </NotificationsProvider>
-          </LogsProvider>
+          <WorkShiftsProvider>
+            <LogsProvider>
+              <NotificationsProvider>
+                <AuthProvider>
+                  <Toaster />
+                  <Sonner />
+                  <BrowserRouter>
+                    <Routes>
+                      <Route path="/" element={<Index />} />
+                      {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                      <Route path="*" element={<NotFound />} />
+                    </Routes>
+                  </BrowserRouter>
+                </AuthProvider>
+              </NotificationsProvider>
+            </LogsProvider>
+          </WorkShiftsProvider>
         </AnnouncementsProvider>
       </UsersProvider>
     </TooltipProvider>
