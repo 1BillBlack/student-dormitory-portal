@@ -90,8 +90,8 @@ export const LogsPanel = ({ canDelete = false }: LogsPanelProps) => {
 
   const filteredLogs = logs.filter(log => {
     const matchesSearch = 
-      log.userName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      log.details.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (log.userName || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (log.details || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
       (log.targetUserName && log.targetUserName.toLowerCase().includes(searchQuery.toLowerCase()));
 
     const matchesCategory = 
