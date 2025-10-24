@@ -151,7 +151,7 @@ export const CleanlinessTable = ({
             <th className="sticky left-0 z-10 bg-background border border-border p-2 min-w-[80px]">
               <div className="font-medium text-sm">Комната</div>
             </th>
-            {dates.map((date) => {
+            {filteredDates.map((date) => {
               const working = isWorkingDay(date, settings);
               const floorClosed = isFloorClosed(date, floor);
               const isGeneralCleaning = date === generalCleaningDate;
