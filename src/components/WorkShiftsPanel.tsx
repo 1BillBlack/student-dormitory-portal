@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import Icon from '@/components/ui/icon';
@@ -16,6 +17,7 @@ import { useLogs } from '@/contexts/LogsContext';
 import { useToast } from '@/hooks/use-toast';
 import { User } from '@/types/auth';
 import { sortPositionsByRank, getPositionName } from '@/utils/positions';
+import { WorkShiftsArchive } from '@/components/WorkShiftsArchive';
 
 interface WorkShiftsPanelProps {
   currentUser: User;
@@ -27,7 +29,7 @@ const formatDate = (dateStr: string) => {
 };
 
 export const WorkShiftsPanel = ({ currentUser }: WorkShiftsPanelProps) => {
-  const { workShifts, addWorkShift, completeWorkShift, deleteWorkShift, getUserTotalDays } = useWorkShifts();
+  const { workShifts, archivedShifts, addWorkShift, completeWorkShift, deleteWorkShift, getUserTotalDays, getUserArchivedShifts } = useWorkShifts();
   const { users } = useUsers();
   const { addNotification } = useNotifications();
   const { addLog } = useLogs();
@@ -47,6 +49,10 @@ export const WorkShiftsPanel = ({ currentUser }: WorkShiftsPanelProps) => {
   const [sortBy, setSortBy] = useState<'name' | 'room' | 'group' | 'floor'>('name');
   const [userSearch, setUserSearch] = useState('');
   const [userSortBy, setUserSortBy] = useState<'name' | 'room' | 'group' | 'position'>('name');
+  const [showArchive, setShowArchive] = useState(false);
+  const [archiveSearch, setArchiveSearch] = useState('');
+  const [archiveSortBy, setArchiveSortBy] = useState<'date' | 'reason'>('date');
+  const [expandedUsers, setExpandedUsers] = useState<Set<string>>(new Set());
 
   const canManage = ['manager', 'admin', 'moderator'].includes(currentUser.role) || 
     currentUser.positions?.some(p => ['chairman', 'vice_chairman', 'secretary'].includes(p));
@@ -245,23 +251,34 @@ export const WorkShiftsPanel = ({ currentUser }: WorkShiftsPanelProps) => {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-        <h3 className="text-lg font-semibold">Управление отработками</h3>
-        {canManage && <Button onClick={() => setAssignOpen(true)} className="gap-2 w-full sm:w-auto"><Icon name="Plus" size={18} />Назначить отработки</Button>}
-      </div>
+      <Tabs defaultValue="active" className="w-full">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
+          <TabsList>
+            <TabsTrigger value="active" className="gap-2">
+              <Icon name="Clock" size={16} />
+              Активные
+            </TabsTrigger>
+            <TabsTrigger value="archive" className="gap-2">
+              <Icon name="Archive" size={16} />
+              Архив
+            </TabsTrigger>
+          </TabsList>
+          {canManage && <Button onClick={() => setAssignOpen(true)} className="gap-2 w-full sm:w-auto"><Icon name="Plus" size={18} />Назначить отработки</Button>}
+        </div>
 
-      <div className="grid gap-3 sm:grid-cols-2">
-        <Input placeholder="Поиск..." value={search} onChange={(e) => setSearch(e.target.value)} />
-        <Select value={sortBy} onValueChange={(v: any) => setSortBy(v)}>
-          <SelectTrigger><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="name">По имени</SelectItem>
-            <SelectItem value="room">По комнате</SelectItem>
-            <SelectItem value="group">По группе</SelectItem>
-            <SelectItem value="floor">По этажу</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
+        <TabsContent value="active" className="space-y-4">
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Input placeholder="Поиск..." value={search} onChange={(e) => setSearch(e.target.value)} />
+            <Select value={sortBy} onValueChange={(v: any) => setSortBy(v)}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="name">По имени</SelectItem>
+                <SelectItem value="room">По комнате</SelectItem>
+                <SelectItem value="group">По группе</SelectItem>
+                <SelectItem value="floor">По этажу</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
 
       {filtered.length === 0 ? (
         <div className="text-center py-8 text-muted-foreground">
@@ -318,6 +335,17 @@ export const WorkShiftsPanel = ({ currentUser }: WorkShiftsPanelProps) => {
           })}
         </div>
       )}
+        </TabsContent>
+
+        <TabsContent value="archive" className="space-y-4">
+          <WorkShiftsArchive 
+            archivedShifts={archivedShifts}
+            users={users}
+            currentUserId={currentUser.id}
+            canViewAll={canManage || isFloorHead}
+          />
+        </TabsContent>
+      </Tabs>
 
       <Dialog open={assignOpen} onOpenChange={setAssignOpen}>
         <DialogContent className="max-h-[90vh] flex flex-col">
