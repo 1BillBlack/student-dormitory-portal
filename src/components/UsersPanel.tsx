@@ -88,8 +88,18 @@ export const UsersPanel = ({ users, currentUser, onUpdateUser, onDeleteUser, onC
     return matchesSearch && matchesRole && matchesPosition;
   });
 
-  const activeUsers = filteredUsers.filter(u => !u.isFrozen);
-  const frozenUsers = filteredUsers.filter(u => u.isFrozen);
+  const roleOrder = { manager: 0, admin: 1, moderator: 2, member: 3 };
+  
+  const sortUsersByRole = (users: User[]) => {
+    return [...users].sort((a, b) => {
+      const aOrder = roleOrder[a.role as keyof typeof roleOrder] ?? 999;
+      const bOrder = roleOrder[b.role as keyof typeof roleOrder] ?? 999;
+      return aOrder - bOrder;
+    });
+  };
+  
+  const activeUsers = sortUsersByRole(filteredUsers.filter(u => !u.isFrozen));
+  const frozenUsers = sortUsersByRole(filteredUsers.filter(u => u.isFrozen));
 
   const canManageThisUser = (targetUser: User): boolean => {
     if (targetUser.id === currentUser.id) return true;

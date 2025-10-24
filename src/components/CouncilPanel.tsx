@@ -4,7 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Icon from '@/components/ui/icon';
 import { User } from '@/types/auth';
-import { getPositionName, sortPositionsByRank } from '@/utils/positions';
+import { getPositionName, sortPositionsByRank, getPositionRank } from '@/utils/positions';
 import { CouncilTasksPanel } from '@/components/CouncilTasksPanel';
 
 interface CouncilPanelProps {
@@ -18,9 +18,13 @@ interface CouncilPanelProps {
 export const CouncilPanel = ({ users, currentUser, onTaskCreated, onTaskUpdated, onTaskDeleted }: CouncilPanelProps) => {
   const [activeTab, setActiveTab] = useState<'members' | 'tasks'>('tasks');
   
-  const councilMembers = users.filter(u => 
-    u.positions && u.positions.length > 0
-  );
+  const councilMembers = users
+    .filter(u => u.positions && u.positions.length > 0)
+    .sort((a, b) => {
+      const aTopPosition = sortPositionsByRank(a.positions || [])[0];
+      const bTopPosition = sortPositionsByRank(b.positions || [])[0];
+      return getPositionRank(aTopPosition) - getPositionRank(bTopPosition);
+    });
 
   const canManageTasks = ['manager', 'admin', 'moderator'].includes(currentUser.role);
 
