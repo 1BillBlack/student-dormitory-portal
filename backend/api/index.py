@@ -221,6 +221,16 @@ def handle_users(method: str, event: Dict[str, Any], conn, cur) -> Dict[str, Any
             updates.append('positions = %s::jsonb')
             params.append(positions_json)
         
+        if 'password' in body:
+            password = body['password']
+            if len(password) < 6:
+                return {'statusCode': 400, 'body': json.dumps({'error': 'Password must be at least 6 characters'})}
+            if len(password) > 32:
+                return {'statusCode': 400, 'body': json.dumps({'error': 'Password must be 32 characters or less'})}
+            password_hash = hash_password(password)
+            updates.append('password_hash = %s')
+            params.append(password_hash)
+        
         if updates:
             updates.append('updated_at = CURRENT_TIMESTAMP')
             params.append(user_id)

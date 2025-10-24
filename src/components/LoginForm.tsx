@@ -193,12 +193,13 @@ export const LoginForm = () => {
           <Alert className="mt-4 border-primary/20 bg-primary/5">
             <Icon name="Info" size={16} className="text-primary" />
             <AlertDescription className="text-xs ml-2">
-              <strong className="block mb-1">Тестовые аккаунты (любой пароль):</strong>
-              <div className="space-y-0.5 font-mono">
-                <div>manager@dorm.ru - Менеджер</div>
-                <div>admin@dorm.ru - Администратор</div>
-                <div>moderator@dorm.ru - Модератор</div>
-                <div>member@dorm.ru - Участник</div>
+              <strong className="block mb-1">Тестовые аккаунты:</strong>
+              <div className="space-y-0.5 font-mono text-[11px]">
+                <div>manager@dorm.ru / manager</div>
+                <div>admin@dorm.ru / admin</div>
+                <div>moderator@dorm.ru / moderator</div>
+                <div>vice@dorm.ru / vice</div>
+                <div>member@dorm.ru / member</div>
               </div>
             </AlertDescription>
           </Alert>
