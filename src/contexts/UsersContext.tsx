@@ -23,14 +23,11 @@ export const UsersProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const loadUsers = async () => {
     try {
       setLoading(true);
-      console.log('[UsersContext] Loading users...');
       const response = await api.users.getAll();
-      console.log('[UsersContext] API response:', response);
       const { users: loadedUsers } = response;
-      console.log('[UsersContext] Loaded users count:', loadedUsers?.length || 0);
       setUsers(loadedUsers || []);
     } catch (error) {
-      console.error('[UsersContext] Failed to load users:', error);
+      console.error('Failed to load users:', error);
       setUsers([]);
     } finally {
       setLoading(false);

@@ -399,7 +399,7 @@ def handle_logs(method: str, event: Dict[str, Any], conn, cur) -> Dict[str, Any]
         except ValueError:
             limit = 100
         
-        cur.execute("SELECT * FROM logs ORDER BY created_at DESC LIMIT %s", (limit,))
+        cur.execute("SELECT * FROM action_logs ORDER BY created_at DESC LIMIT %s", (limit,))
         logs = cur.fetchall()
         
         return {'statusCode': 200, 'body': json.dumps({'logs': [dict(l) for l in logs]}, default=str)}
@@ -416,7 +416,7 @@ def handle_logs(method: str, event: Dict[str, Any], conn, cur) -> Dict[str, Any]
             return {'statusCode': 400, 'body': json.dumps({'error': 'Invalid user ID'})}
         
         cur.execute(
-            """INSERT INTO logs (action, user_id, user_name, details) 
+            """INSERT INTO action_logs (action, user_id, user_name, details) 
                VALUES (%s, %s, %s, %s) RETURNING *""",
             (action, user_id, user_name, details)
         )
@@ -426,7 +426,7 @@ def handle_logs(method: str, event: Dict[str, Any], conn, cur) -> Dict[str, Any]
         return {'statusCode': 201, 'body': json.dumps({'log': dict(log)}, default=str)}
     
     elif method == 'DELETE':
-        cur.execute("DELETE FROM logs")
+        cur.execute("DELETE FROM action_logs")
         conn.commit()
         return {'statusCode': 200, 'body': json.dumps({'success': True})}
     
