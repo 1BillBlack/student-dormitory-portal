@@ -65,7 +65,7 @@ export const Dashboard = () => {
   const [statsPeriod, setStatsPeriod] = useState<'week' | 'month' | 'all'>('week');
   const { user, logout } = useAuth();
   const { users, updateUser, deleteUser, createUser, updateUserPositions } = useUsers();
-  const { announcements, addAnnouncement, updateAnnouncement, deleteAnnouncement } = useAnnouncements();
+  const { announcements, archivedAnnouncements, addAnnouncement, updateAnnouncement, deleteAnnouncement } = useAnnouncements();
   const { addNotification } = useNotifications();
   const { toast } = useToast();
 
@@ -73,7 +73,12 @@ export const Dashboard = () => {
     localStorage.setItem('activeTab', activeTab);
   }, [activeTab]);
 
-  const canManageAnnouncements = ['manager', 'admin', 'moderator'].includes(user?.role || '');
+  const canCreateAnnouncements = 
+    ['manager', 'admin', 'moderator'].includes(user?.role || '') ||
+    user?.positions?.some(p => 
+      ['media_sector', 'sports_sector', 'cultural_sector', 'duty_sector'].includes(p) ||
+      p.startsWith('floor_')
+    );
   const canManageUsers = ['manager', 'admin', 'moderator'].includes(user?.role || '');
   const hasCouncilAccess = 
     ['manager', 'admin', 'moderator'].includes(user?.role || '') ||
@@ -229,7 +234,10 @@ export const Dashboard = () => {
   };
 
   const handleAddAnnouncement = (announcement: any) => {
-    addAnnouncement(announcement);
+    addAnnouncement({
+      ...announcement,
+      createdBy: user?.id,
+    });
   };
 
   const handleEditAnnouncement = (id: number, updatedData: any) => {
@@ -268,6 +276,33 @@ export const Dashboard = () => {
       return userFloorNum === floor;
     }
     return false;
+  };
+
+  const canEditAnnouncement = (announcement: any) => {
+    if (['manager', 'admin', 'moderator'].includes(user?.role || '')) return true;
+    return announcement.createdBy === user?.id;
+  };
+
+  const getAvailableAudiences = () => {
+    if (['manager', 'admin', 'moderator'].includes(user?.role || '')) {
+      return ['all', 'floor_2', 'floor_3', 'floor_4', 'floor_5', 'council'];
+    }
+    
+    const hasSectorPosition = user?.positions?.some(p => 
+      ['media_sector', 'sports_sector', 'cultural_sector', 'duty_sector'].includes(p)
+    );
+    
+    if (hasSectorPosition) {
+      return ['all', 'floor_2', 'floor_3', 'floor_4', 'floor_5'];
+    }
+    
+    const floorPosition = user?.positions?.find(p => p.startsWith('floor_'));
+    if (floorPosition) {
+      const floorNum = floorPosition.split('_')[1];
+      return [`floor_${floorNum}`];
+    }
+    
+    return [];
   };
 
   const filteredAnnouncements = announcements.filter(canSeeAnnouncement);
@@ -372,10 +407,14 @@ export const Dashboard = () => {
 
           <TabsContent value="home" className="space-y-6">
             <Tabs defaultValue="notifications" className="w-full">
-              <TabsList className="grid w-full grid-cols-2 mb-6">
+              <TabsList className="grid w-full grid-cols-3 mb-6">
                 <TabsTrigger value="notifications" className="gap-2">
                   <Icon name="Bell" size={18} />
                   Уведомления
+                </TabsTrigger>
+                <TabsTrigger value="archive" className="gap-2">
+                  <Icon name="Archive" size={18} />
+                  Архив
                 </TabsTrigger>
                 <TabsTrigger value="profile" className="gap-2">
                   <Icon name="User" size={18} />
@@ -384,9 +423,12 @@ export const Dashboard = () => {
               </TabsList>
 
               <TabsContent value="notifications" className="space-y-4">
-                {canManageAnnouncements && (
+                {canCreateAnnouncements && (
                   <div className="mb-6 flex justify-end">
-                    <CreateAnnouncementDialog onAdd={handleAddAnnouncement} />
+                    <CreateAnnouncementDialog 
+                      onAdd={handleAddAnnouncement}
+                      availableAudiences={getAvailableAudiences() as any}
+                    />
                   </div>
                 )}
                 {filteredAnnouncements.length === 0 && (
@@ -416,7 +458,7 @@ export const Dashboard = () => {
                           <Badge variant={getPriorityColor(announcement.priority)} className="shrink-0">
                             {announcement.priority === 'high' ? 'Важно' : 'Обычное'}
                           </Badge>
-                          {canManageAnnouncements && (
+                          {canEditAnnouncement(announcement) && (
                             <div className="flex gap-1 shrink-0">
                               <Button
                                 variant="ghost"
@@ -442,6 +484,49 @@ export const Dashboard = () => {
                     </CardContent>
                   </Card>
                 ))}
+              </TabsContent>
+
+              <TabsContent value="archive" className="space-y-4">
+                {archivedAnnouncements.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <Icon name="Archive" size={48} className="mx-auto mb-4 opacity-50" />
+                    <p>Архив пуст</p>
+                  </div>
+                ) : (
+                  archivedAnnouncements.map((announcement, index) => (
+                    <Card key={announcement.id} className="animate-slide-in opacity-60" style={{ animationDelay: `${index * 100}ms` }}>
+                      <CardHeader className="p-4">
+                        <div className="flex flex-col sm:flex-row items-start justify-between gap-3">
+                          <div className="flex-1 min-w-0 w-full">
+                            <CardTitle className="text-base sm:text-lg break-words">{announcement.title}</CardTitle>
+                            <CardDescription className="flex flex-wrap items-center gap-2 mt-1">
+                              <span className="flex items-center gap-1">
+                                <Icon name="Calendar" size={14} />
+                                {formatDate(announcement.date)}
+                              </span>
+                              <span className="flex items-center gap-1">
+                                <Icon name="Users" size={14} />
+                                {getAudienceName(announcement.audience)}
+                              </span>
+                              {announcement.archivedAt && (
+                                <span className="flex items-center gap-1">
+                                  <Icon name="Archive" size={14} />
+                                  Архивировано {formatDate(announcement.archivedAt.split('T')[0])}
+                                </span>
+                              )}
+                            </CardDescription>
+                          </div>
+                          <Badge variant="secondary" className="shrink-0">
+                            Архив
+                          </Badge>
+                        </div>
+                      </CardHeader>
+                      <CardContent className="p-4 pt-0">
+                        <p className="text-sm sm:text-base text-muted-foreground break-words">{announcement.content}</p>
+                      </CardContent>
+                    </Card>
+                  ))
+                )}
               </TabsContent>
 
               <TabsContent value="profile" className="space-y-4">

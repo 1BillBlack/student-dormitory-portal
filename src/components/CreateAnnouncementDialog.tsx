@@ -19,15 +19,16 @@ import { AnnouncementAudience } from '@/contexts/AnnouncementsContext';
 
 interface CreateAnnouncementDialogProps {
   onAdd: (announcement: { title: string; content: string; priority: string; date: string; expiresAt?: string; audience: AnnouncementAudience }) => void;
+  availableAudiences?: AnnouncementAudience[];
 }
 
-export const CreateAnnouncementDialog = ({ onAdd }: CreateAnnouncementDialogProps) => {
+export const CreateAnnouncementDialog = ({ onAdd, availableAudiences = ['all', 'floor_2', 'floor_3', 'floor_4', 'floor_5', 'council'] }: CreateAnnouncementDialogProps) => {
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [priority, setPriority] = useState<'high' | 'medium'>('medium');
   const [expiresAt, setExpiresAt] = useState('');
-  const [audience, setAudience] = useState<AnnouncementAudience>('all');
+  const [audience, setAudience] = useState<AnnouncementAudience>(() => availableAudiences[0] || 'all');
   const { toast } = useToast();
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -62,7 +63,7 @@ export const CreateAnnouncementDialog = ({ onAdd }: CreateAnnouncementDialogProp
     setContent('');
     setPriority('medium');
     setExpiresAt('');
-    setAudience('all');
+    setAudience(availableAudiences[0] || 'all');
     setOpen(false);
   };
 
@@ -121,12 +122,12 @@ export const CreateAnnouncementDialog = ({ onAdd }: CreateAnnouncementDialogProp
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Все общежитие</SelectItem>
-                  <SelectItem value="floor_2">2 этаж</SelectItem>
-                  <SelectItem value="floor_3">3 этаж</SelectItem>
-                  <SelectItem value="floor_4">4 этаж</SelectItem>
-                  <SelectItem value="floor_5">5 этаж</SelectItem>
-                  <SelectItem value="council">Только студсовет</SelectItem>
+                  {availableAudiences.includes('all') && <SelectItem value="all">Все общежитие</SelectItem>}
+                  {availableAudiences.includes('floor_2') && <SelectItem value="floor_2">2 этаж</SelectItem>}
+                  {availableAudiences.includes('floor_3') && <SelectItem value="floor_3">3 этаж</SelectItem>}
+                  {availableAudiences.includes('floor_4') && <SelectItem value="floor_4">4 этаж</SelectItem>}
+                  {availableAudiences.includes('floor_5') && <SelectItem value="floor_5">5 этаж</SelectItem>}
+                  {availableAudiences.includes('council') && <SelectItem value="council">Только студсовет</SelectItem>}
                 </SelectContent>
               </Select>
             </div>
