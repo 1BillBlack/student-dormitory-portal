@@ -428,14 +428,19 @@ def handle_logs(method: str, event: Dict[str, Any], conn, cur) -> Dict[str, Any]
         user_id = body.get('userId', '')
         user_name = sanitize_string(body.get('userName', ''), 255)
         details = sanitize_string(body.get('details', ''), 1000)
+        target_user_id = body.get('targetUserId')
+        target_user_name = sanitize_string(body.get('targetUserName', ''), 255) if body.get('targetUserName') else None
         
         if not validate_uuid(user_id):
             return {'statusCode': 400, 'body': json.dumps({'error': 'Invalid user ID'})}
         
+        if target_user_id and not validate_uuid(target_user_id):
+            return {'statusCode': 400, 'body': json.dumps({'error': 'Invalid target user ID'})}
+        
         cur.execute(
-            """INSERT INTO action_logs (action, user_id, user_name, details) 
-               VALUES (%s, %s, %s, %s) RETURNING *""",
-            (action, user_id, user_name, details)
+            """INSERT INTO action_logs (action, user_id, user_name, details, target_user_id, target_user_name) 
+               VALUES (%s, %s, %s, %s, %s, %s) RETURNING *""",
+            (action, user_id, user_name, details, target_user_id, target_user_name)
         )
         log = cur.fetchone()
         conn.commit()
