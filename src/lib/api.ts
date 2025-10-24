@@ -26,11 +26,15 @@ async function apiRequest<T>(
     options.body = JSON.stringify(body);
   }
 
+  console.log(`[API] ${method} request to:`, url);
   const response = await fetch(url, options);
+  console.log(`[API] Response status:`, response.status);
+  
   const data = await response.json();
+  console.log(`[API] Response data:`, data);
 
   if (!response.ok) {
-    console.error('API Error:', {
+    console.error('[API] Error:', {
       url,
       status: response.status,
       statusText: response.statusText,
