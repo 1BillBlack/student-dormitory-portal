@@ -274,12 +274,12 @@ export const WorkShiftsPanel = ({ currentUser: propCurrentUser }: WorkShiftsPane
       </Card>
 
       <Tabs defaultValue="active">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className={`grid w-full ${canManage ? 'grid-cols-3' : 'grid-cols-2'}`}>
           <TabsTrigger value="active">Активные</TabsTrigger>
+          <TabsTrigger value="my">Мои отработки</TabsTrigger>
           {canManage && (
             <TabsTrigger value="archive">Архив</TabsTrigger>
           )}
-          <TabsTrigger value="my">Мои отработки</TabsTrigger>
         </TabsList>
 
         <TabsContent value="active" className="space-y-4">
