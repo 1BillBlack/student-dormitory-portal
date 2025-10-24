@@ -45,6 +45,15 @@ def sanitize_string(value: str, max_length: int = 500) -> str:
         return ""
     return str(value)[:max_length].strip()
 
+def snake_to_camel(snake_str: str) -> str:
+    """Convert snake_case to camelCase"""
+    components = snake_str.split('_')
+    return components[0] + ''.join(x.title() for x in components[1:])
+
+def convert_dict_keys_to_camel(data: Dict[str, Any]) -> Dict[str, Any]:
+    """Convert all dictionary keys from snake_case to camelCase"""
+    return {snake_to_camel(key): value for key, value in data.items()}
+
 def check_rate_limit(ip: str) -> bool:
     """Check if request is within rate limit"""
     current_time = time.time()
@@ -244,7 +253,7 @@ def handle_work_shifts(method: str, event: Dict[str, Any], conn, cur) -> Dict[st
         if include_archived:
             cur.execute("SELECT * FROM archived_work_shifts ORDER BY archived_at DESC")
             shifts = cur.fetchall()
-            return {'statusCode': 200, 'body': json.dumps({'archivedShifts': [dict(s) for s in shifts]}, default=str)}
+            return {'statusCode': 200, 'body': json.dumps({'archivedShifts': [convert_dict_keys_to_camel(dict(s)) for s in shifts]}, default=str)}
         
         if user_id:
             if not validate_uuid(user_id):
@@ -254,7 +263,7 @@ def handle_work_shifts(method: str, event: Dict[str, Any], conn, cur) -> Dict[st
             cur.execute("SELECT * FROM work_shifts WHERE is_archived = FALSE ORDER BY assigned_at DESC")
         
         shifts = cur.fetchall()
-        return {'statusCode': 200, 'body': json.dumps({'workShifts': [dict(s) for s in shifts]}, default=str)}
+        return {'statusCode': 200, 'body': json.dumps({'workShifts': [convert_dict_keys_to_camel(dict(s)) for s in shifts]}, default=str)}
     
     elif method == 'POST':
         body = json.loads(event.get('body', '{}'))
@@ -283,7 +292,7 @@ def handle_work_shifts(method: str, event: Dict[str, Any], conn, cur) -> Dict[st
         shift = cur.fetchone()
         conn.commit()
         
-        return {'statusCode': 201, 'body': json.dumps({'workShift': dict(shift)}, default=str)}
+        return {'statusCode': 201, 'body': json.dumps({'workShift': convert_dict_keys_to_camel(dict(shift))}, default=str)}
     
     elif method == 'PUT':
         body = json.loads(event.get('body', '{}'))
@@ -317,7 +326,7 @@ def handle_work_shifts(method: str, event: Dict[str, Any], conn, cur) -> Dict[st
             shift = cur.fetchone()
             conn.commit()
             
-            return {'statusCode': 200, 'body': json.dumps({'workShift': dict(shift)}, default=str)}
+            return {'statusCode': 200, 'body': json.dumps({'workShift': convert_dict_keys_to_camel(dict(shift))}, default=str)}
         
         elif action == 'archive':
             cur.execute("SELECT * FROM work_shifts WHERE id = %s", (shift_id,))
