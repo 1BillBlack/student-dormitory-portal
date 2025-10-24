@@ -44,13 +44,13 @@ export const AdminPanel = ({
     <div className="space-y-4">
       <Tabs value={activeAdminTab} onValueChange={(v) => setActiveAdminTab(v as AdminTabType)}>
         <TabsList className="grid w-full grid-cols-3 mb-6">
-          <TabsTrigger value="users" className="gap-2">
-            <Icon name="Users" size={18} />
-            <span>Пользователи</span>
-          </TabsTrigger>
           <TabsTrigger value="floors" className="gap-2">
             <Icon name="ClipboardCheck" size={18} />
             <span>Запросы</span>
+          </TabsTrigger>
+          <TabsTrigger value="users" className="gap-2">
+            <Icon name="Users" size={18} />
+            <span>Пользователи</span>
           </TabsTrigger>
           <TabsTrigger value="settings" className="gap-2">
             <Icon name="Settings" size={18} />
