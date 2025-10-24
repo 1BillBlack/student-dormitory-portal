@@ -161,33 +161,35 @@ export const Dashboard = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-secondary/5">
       <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-50">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center">
-              <Icon name="Home" size={22} className="text-primary-foreground" />
+        <div className="container mx-auto px-2 sm:px-4 py-3 sm:py-4 flex items-center justify-between">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 bg-primary rounded-xl flex items-center justify-center shrink-0">
+              <Icon name="Home" size={18} className="sm:hidden text-primary-foreground" />
+              <Icon name="Home" size={22} className="hidden sm:block text-primary-foreground" />
             </div>
-            <div>
-              <h1 className="text-xl font-bold">Студенческий портал</h1>
-              <p className="text-sm text-muted-foreground">Общежитие №5</p>
+            <div className="min-w-0">
+              <h1 className="text-base sm:text-xl font-bold truncate">Студенческий портал</h1>
+              <p className="text-xs sm:text-sm text-muted-foreground">Общежитие №5</p>
             </div>
           </div>
           
-          <div className="flex items-center gap-3">
-            <div className="text-right hidden sm:block">
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+            <div className="text-right hidden md:block">
               <p className="text-sm font-medium">{user?.name}</p>
               <p className="text-xs text-muted-foreground">{getRoleName(user?.role || '')}</p>
             </div>
-            <Button variant="ghost" size="icon" onClick={logout}>
-              <Icon name="LogOut" size={20} />
+            <Button variant="ghost" size="icon" onClick={logout} className="shrink-0">
+              <Icon name="LogOut" size={18} className="sm:hidden" />
+              <Icon name="LogOut" size={20} className="hidden sm:block" />
             </Button>
           </div>
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-8">
-        <div className="mb-6 animate-fade-in">
-          <h2 className="text-2xl font-bold mb-2">Добро пожаловать, {user?.name}!</h2>
-          <p className="text-muted-foreground">{user?.room ? `Комната ${user.room} • ` : ''}{getRoleName(user?.role || '')}</p>
+      <main className="container mx-auto px-2 sm:px-4 py-4 sm:py-8">
+        <div className="mb-4 sm:mb-6 animate-fade-in">
+          <h2 className="text-xl sm:text-2xl font-bold mb-2">Добро пожаловать, {user?.name}!</h2>
+          <p className="text-sm sm:text-base text-muted-foreground">{user?.room ? `Комната ${user.room} • ` : ''}{getRoleName(user?.role || '')}</p>
         </div>
 
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as TabType)} className="animate-fade-in">
@@ -247,23 +249,29 @@ export const Dashboard = () => {
                     <CreateAnnouncementDialog onAdd={handleAddAnnouncement} />
                   </div>
                 )}
+                {announcements.length === 0 && (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <Icon name="Bell" size={48} className="mx-auto mb-4 opacity-50" />
+                    <p>Нет объявлений</p>
+                  </div>
+                )}
                 {announcements.map((announcement, index) => (
                   <Card key={announcement.id} className="animate-slide-in hover:shadow-lg transition-shadow" style={{ animationDelay: `${index * 100}ms` }}>
-                    <CardHeader>
-                      <div className="flex items-start justify-between gap-4">
-                        <div className="flex-1">
-                          <CardTitle className="text-lg">{announcement.title}</CardTitle>
+                    <CardHeader className="p-4">
+                      <div className="flex flex-col sm:flex-row items-start justify-between gap-3">
+                        <div className="flex-1 min-w-0 w-full">
+                          <CardTitle className="text-base sm:text-lg break-words">{announcement.title}</CardTitle>
                           <CardDescription className="flex items-center gap-2 mt-1">
                             <Icon name="Calendar" size={14} />
                             {formatDate(announcement.date)}
                           </CardDescription>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <Badge variant={getPriorityColor(announcement.priority)}>
+                        <div className="flex items-center gap-2 self-start sm:self-center w-full sm:w-auto justify-between sm:justify-end">
+                          <Badge variant={getPriorityColor(announcement.priority)} className="shrink-0">
                             {announcement.priority === 'high' ? 'Важно' : 'Обычное'}
                           </Badge>
                           {canManageAnnouncements && (
-                            <div className="flex gap-1">
+                            <div className="flex gap-1 shrink-0">
                               <Button
                                 variant="ghost"
                                 size="icon"
@@ -283,8 +291,8 @@ export const Dashboard = () => {
                         </div>
                       </div>
                     </CardHeader>
-                    <CardContent>
-                      <p className="text-muted-foreground">{announcement.content}</p>
+                    <CardContent className="p-4 pt-0">
+                      <p className="text-sm sm:text-base text-muted-foreground break-words">{announcement.content}</p>
                     </CardContent>
                   </Card>
                 ))}
@@ -292,12 +300,12 @@ export const Dashboard = () => {
 
               <TabsContent value="profile" className="space-y-4">
                 <Card>
-                  <CardHeader>
-                    <CardTitle>Личная информация</CardTitle>
+                  <CardHeader className="p-4 sm:p-6">
+                    <CardTitle className="text-lg sm:text-xl">Личная информация</CardTitle>
                     <CardDescription>Ваши данные в системе</CardDescription>
                   </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="grid grid-cols-[120px_1fr] gap-4 text-sm">
+                  <CardContent className="space-y-4 p-4 sm:p-6">
+                    <div className="grid grid-cols-[100px_1fr] sm:grid-cols-[120px_1fr] gap-3 sm:gap-4 text-sm">
                       <span className="text-muted-foreground">Имя:</span>
                       <span className="font-medium">{user?.name}</span>
                       

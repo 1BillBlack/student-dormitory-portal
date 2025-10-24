@@ -80,28 +80,30 @@ export const UsersPanel = ({ users, currentUser, onUpdateUser, onDeleteUser, onC
 
   const renderUserCard = (user: User) => (
     <Card key={user.id} className={user.isFrozen ? 'opacity-60' : ''}>
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <div className="flex-1">
-            <CardTitle className="text-base flex items-center gap-2">
-              {user.name}
+      <CardHeader className="p-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex-1 min-w-0">
+            <CardTitle className="text-base flex flex-wrap items-center gap-2">
+              <span className="truncate">{user.name}</span>
               {user.isFrozen && (
-                <Badge variant="outline" className="gap-1">
+                <Badge variant="outline" className="gap-1 shrink-0">
                   <Icon name="Snowflake" size={12} />
-                  Заморожен
+                  <span className="hidden sm:inline">Заморожен</span>
                 </Badge>
               )}
             </CardTitle>
-            <div className="space-y-1 mt-1">
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Icon name="Mail" size={14} />
-                {user.email}
+            <div className="space-y-1 mt-2">
+              <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+                <div className="flex items-center gap-1">
+                  <Icon name="Mail" size={14} />
+                  <span className="break-all">{user.email}</span>
+                </div>
                 {user.room && (
-                  <>
+                  <div className="flex items-center gap-1">
                     <span>•</span>
                     <Icon name="Home" size={14} />
-                    Комната {user.room}
-                  </>
+                    <span>Комната {user.room}</span>
+                  </div>
                 )}
               </div>
               {user.positions && user.positions.length > 0 && (
@@ -115,13 +117,13 @@ export const UsersPanel = ({ users, currentUser, onUpdateUser, onDeleteUser, onC
               )}
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <Badge variant={getRoleBadgeVariant(user.role)}>
+          <div className="flex items-center gap-2 self-start sm:self-center">
+            <Badge variant={getRoleBadgeVariant(user.role)} className="shrink-0">
               {getRoleName(user.role)}
             </Badge>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon">
+                <Button variant="ghost" size="icon" className="shrink-0">
                   <Icon name="MoreVertical" size={18} />
                 </Button>
               </DropdownMenuTrigger>
@@ -160,11 +162,12 @@ export const UsersPanel = ({ users, currentUser, onUpdateUser, onDeleteUser, onC
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
         <h3 className="text-lg font-semibold">Управление пользователями</h3>
-        <Button onClick={() => setCreatingUser(true)} className="gap-2">
+        <Button onClick={() => setCreatingUser(true)} className="gap-2 w-full sm:w-auto">
           <Icon name="UserPlus" size={18} />
-          Создать пользователя
+          <span className="hidden sm:inline">Создать пользователя</span>
+          <span className="sm:hidden">Создать</span>
         </Button>
       </div>
 

@@ -158,7 +158,7 @@ export const UserManagementDialog = ({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       {trigger}
-      <DialogContent className="sm:max-w-[525px]">
+      <DialogContent className="sm:max-w-[525px] max-h-[90vh] flex flex-col">
         <DialogHeader>
           <DialogTitle>
             {mode === 'create' ? 'Создать пользователя' : 'Редактировать пользователя'}
@@ -169,8 +169,8 @@ export const UserManagementDialog = ({
               : 'Внесите изменения в данные пользователя'}
           </DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleSubmit}>
-          <div className="grid gap-4 py-4">
+        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto">
+          <div className="grid gap-4 py-4 px-1">
             <div className="space-y-2">
               <Label htmlFor="user-email">Электронная почта *</Label>
               <Input

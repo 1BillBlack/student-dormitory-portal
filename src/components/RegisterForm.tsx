@@ -67,19 +67,20 @@ export const RegisterForm = ({ onRegister, onBackToLogin }: RegisterFormProps) =
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/10 via-background to-secondary/10 p-4">
-      <Card className="w-full max-w-md shadow-2xl border-0 animate-fade-in">
-        <CardHeader className="space-y-1 text-center pb-6">
-          <div className="mx-auto w-16 h-16 bg-primary rounded-2xl flex items-center justify-center mb-4 shadow-lg">
-            <Icon name="UserPlus" size={32} className="text-primary-foreground" />
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/10 via-background to-secondary/10 p-2 sm:p-4 overflow-y-auto">
+      <Card className="w-full max-w-md shadow-2xl border-0 animate-fade-in my-4">
+        <CardHeader className="space-y-1 text-center pb-4 sm:pb-6 px-4 sm:px-6">
+          <div className="mx-auto w-12 h-12 sm:w-16 sm:h-16 bg-primary rounded-2xl flex items-center justify-center mb-3 sm:mb-4 shadow-lg">
+            <Icon name="UserPlus" size={24} className="sm:hidden text-primary-foreground" />
+            <Icon name="UserPlus" size={32} className="hidden sm:block text-primary-foreground" />
           </div>
-          <CardTitle className="text-3xl font-bold">Регистрация</CardTitle>
-          <CardDescription className="text-base">
+          <CardTitle className="text-2xl sm:text-3xl font-bold">Регистрация</CardTitle>
+          <CardDescription className="text-sm sm:text-base">
             Создайте аккаунт для доступа к системе общежития
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
+        <CardContent className="px-4 sm:px-6">
+          <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
             <div className="space-y-2">
               <Label htmlFor="name">ФИО</Label>
               <div className="relative">

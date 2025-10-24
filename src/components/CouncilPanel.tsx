@@ -63,38 +63,38 @@ export const CouncilPanel = ({ users, currentUser }: CouncilPanelProps) => {
           </p>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid gap-4 sm:grid-cols-2">
           {councilMembers.map((member) => (
             <Card 
               key={member.id} 
               className={`${member.id === currentUser.id ? 'border-primary' : ''} hover:shadow-lg transition-shadow`}
             >
-              <CardHeader>
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <CardTitle className="text-base flex items-center gap-2">
-                      {member.name}
+              <CardHeader className="p-4">
+                <div className="flex flex-col sm:flex-row items-start justify-between gap-3">
+                  <div className="flex-1 min-w-0 w-full">
+                    <CardTitle className="text-base flex flex-wrap items-center gap-2">
+                      <span className="truncate">{member.name}</span>
                       {member.id === currentUser.id && (
-                        <Badge variant="outline" className="gap-1">
+                        <Badge variant="outline" className="gap-1 shrink-0">
                           <Icon name="User" size={12} />
                           Вы
                         </Badge>
                       )}
                     </CardTitle>
                     <div className="mt-2 space-y-2">
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <Icon name="Mail" size={14} />
-                        {member.email}
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground break-all">
+                        <Icon name="Mail" size={14} className="shrink-0" />
+                        <span>{member.email}</span>
                       </div>
                       {member.room && (
                         <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <Icon name="Home" size={14} />
-                          Комната {member.room}
+                          <Icon name="Home" size={14} className="shrink-0" />
+                          <span>Комната {member.room}</span>
                         </div>
                       )}
                     </div>
                   </div>
-                  <Badge variant={getRoleBadgeVariant(member.role)}>
+                  <Badge variant={getRoleBadgeVariant(member.role)} className="shrink-0 self-start sm:self-center">
                     {getRoleName(member.role)}
                   </Badge>
                 </div>
