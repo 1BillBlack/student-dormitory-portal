@@ -125,8 +125,8 @@ export const CleanlinessTable = ({
 
   const generalCleaningDate = getGeneralCleaningDay(dates, settings);
   
-  const getAverageScoreForDate = (date: string): number | null => {
-    const scores = rooms.map(room => getScore(floor, date, room));
+  const getAverageScoreForRoom = (room: string): number | null => {
+    const scores = filteredDates.map(date => getScore(floor, date, room));
     return calculateAverageScore(scores);
   };
 
@@ -174,60 +174,49 @@ export const CleanlinessTable = ({
                 </th>
               );
             })}
+            <th className="border border-border p-2 min-w-[90px] text-center bg-muted/50">
+              <div className="text-xs font-semibold">Средний\nбалл</div>
+            </th>
           </tr>
         </thead>
         <tbody>
-          {rooms.map((room) => (
-            <tr key={room} className="hover:bg-muted/50">
-              <td className="sticky left-0 z-10 bg-background border border-border p-2 font-medium text-sm">
-                {room}
-              </td>
-              {filteredDates.map((date) => {
-                const working = isWorkingDay(date, settings);
-                const roomClosed = isRoomClosed(date, room);
-                const floorClosed = isFloorClosed(date, floor);
-                const isGeneralCleaning = date === generalCleaningDate;
-                
-                return (
-                  <td
-                    key={`${room}-${date}`}
-                    className={`border border-border p-2 text-center ${
-                      !working || roomClosed || floorClosed ? 'bg-muted/30' : ''
-                    } ${
-                      isGeneralCleaning ? 'bg-purple-50' : ''
-                    }`}
-                  >
-                    {getCellContent(date, room)}
-                  </td>
-                );
-              })}
-            </tr>
-          ))}
-          <tr className="bg-muted/50 font-semibold">
-            <td className="sticky left-0 z-10 bg-muted border border-border p-2 text-sm">
-              Средний балл
-            </td>
-            {filteredDates.map((date) => {
-              const avgScore = getAverageScoreForDate(date);
-              const isGeneralCleaning = date === generalCleaningDate;
-              const working = isWorkingDay(date, settings);
-              
-              return (
-                <td
-                  key={`avg-${date}`}
-                  className={`border border-border p-2 text-center ${
-                    isGeneralCleaning ? 'bg-purple-50' : ''
-                  } ${!working ? 'bg-muted/30' : ''}`}
-                >
+          {rooms.map((room) => {
+            const avgScore = getAverageScoreForRoom(room);
+            return (
+              <tr key={room} className="hover:bg-muted/50">
+                <td className="sticky left-0 z-10 bg-background border border-border p-2 font-medium text-sm">
+                  {room}
+                </td>
+                {filteredDates.map((date) => {
+                  const working = isWorkingDay(date, settings);
+                  const roomClosed = isRoomClosed(date, room);
+                  const floorClosed = isFloorClosed(date, floor);
+                  const isGeneralCleaning = date === generalCleaningDate;
+                  
+                  return (
+                    <td
+                      key={`${room}-${date}`}
+                      className={`border border-border p-2 text-center ${
+                        !working || roomClosed || floorClosed ? 'bg-muted/30' : ''
+                      } ${
+                        isGeneralCleaning ? 'bg-purple-50' : ''
+                      }`}
+                    >
+                      {getCellContent(date, room)}
+                    </td>
+                  );
+                })}
+                <td className="border border-border p-2 text-center bg-muted/50 font-semibold">
                   {avgScore !== null ? (
-                    <span className="text-sm font-semibold">{avgScore.toFixed(1)}</span>
+                    <span className="text-sm">{avgScore.toFixed(1)}</span>
                   ) : (
                     <span className="text-gray-400">-</span>
                   )}
                 </td>
-              );
-            })}
-          </tr>
+              </tr>
+            );
+          })}
+
         </tbody>
       </table>
     </div>
