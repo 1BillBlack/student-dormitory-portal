@@ -136,6 +136,18 @@ def handle_users(method: str, event: Dict[str, Any], conn, cur) -> Dict[str, Any
         
         return {'statusCode': 200, 'body': json.dumps({'success': True})}
     
+    elif method == 'DELETE':
+        params = event.get('queryStringParameters', {})
+        user_id = params.get('userId')
+        
+        if not user_id:
+            return {'statusCode': 400, 'body': json.dumps({'error': 'User ID required'})}
+        
+        query = f"DELETE FROM users WHERE id = {escape_sql_string(user_id)}"
+        cur.execute(query)
+        
+        return {'statusCode': 200, 'body': json.dumps({'success': True})}
+    
     return {'statusCode': 405, 'body': json.dumps({'error': 'Method not allowed'})}
 
 def handle_work_shifts(method: str, event: Dict[str, Any], conn, cur) -> Dict[str, Any]:
