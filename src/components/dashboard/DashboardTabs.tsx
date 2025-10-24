@@ -179,9 +179,9 @@ export const DashboardTabs = ({
         <WorkShiftsPanel />
       </TabsContent>
 
-      {hasCouncilAccess && (
+      {hasCouncilAccess && user && (
         <TabsContent value="council">
-          <CouncilPanel />
+          <CouncilPanel users={users} currentUser={user} />
         </TabsContent>
       )}
 
