@@ -1,48 +1,15 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Card, CardContent } from '@/components/ui/card';
 import Icon from '@/components/ui/icon';
 import { useToast } from '@/hooks/use-toast';
 import { User, UserPosition } from '@/types/auth';
-import { getPositionName, getAllPositions } from '@/utils/positions';
-
-interface Task {
-  id: number;
-  title: string;
-  description: string;
-  assignedToUsers: string[];
-  assignedToPositions: UserPosition[];
-  status: 'pending' | 'in_progress' | 'completed';
-  priority: 'low' | 'medium' | 'high';
-  dueDate: string;
-  createdBy: string;
-  createdAt: string;
-  completedAt?: string;
-}
+import { Task } from '@/types/councilTasks';
+import { getAllPositions } from '@/utils/positions';
+import { TaskCard } from '@/components/CouncilTasks/TaskCard';
+import { TaskDialog } from '@/components/CouncilTasks/TaskDialog';
+import { DeleteTaskDialog } from '@/components/CouncilTasks/DeleteTaskDialog';
+import { TaskFilters } from '@/components/CouncilTasks/TaskFilters';
 
 interface CouncilTasksPanelProps {
   canManage: boolean;
@@ -55,7 +22,14 @@ interface CouncilTasksPanelProps {
 
 const STORAGE_KEY = 'council_tasks';
 
-export const CouncilTasksPanel = ({ canManage, userName, councilMembers, onTaskCreated, onTaskUpdated, onTaskDeleted }: CouncilTasksPanelProps) => {
+export const CouncilTasksPanel = ({ 
+  canManage, 
+  userName, 
+  councilMembers, 
+  onTaskCreated, 
+  onTaskUpdated, 
+  onTaskDeleted 
+}: CouncilTasksPanelProps) => {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [open, setOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
@@ -232,13 +206,13 @@ export const CouncilTasksPanel = ({ canManage, userName, councilMembers, onTaskC
     });
   };
 
-  const getStatusColor = (status: Task['status']) => {
+  const getStatusColor = (status: Task['status']): 'default' | 'secondary' | 'outline' => {
     if (status === 'completed') return 'default';
     if (status === 'in_progress') return 'secondary';
     return 'outline';
   };
 
-  const getPriorityColor = (priority: Task['priority']) => {
+  const getPriorityColor = (priority: Task['priority']): 'destructive' | 'secondary' | 'outline' => {
     if (priority === 'high') return 'destructive';
     if (priority === 'medium') return 'secondary';
     return 'outline';
@@ -292,184 +266,43 @@ export const CouncilTasksPanel = ({ canManage, userName, councilMembers, onTaskC
           </p>
         </div>
         {canManage && (
-          <Dialog open={open} onOpenChange={(isOpen) => {
-            setOpen(isOpen);
-            if (!isOpen) resetForm();
-          }}>
-            <DialogTrigger asChild>
-              <Button className="gap-2">
-                <Icon name="Plus" size={18} />
-                Создать задачу
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[525px]">
-              <DialogHeader>
-                <DialogTitle>{editingTask ? 'Редактировать задачу' : 'Новая задача'}</DialogTitle>
-                <DialogDescription>
-                  {editingTask ? 'Изменение существующей задачи' : 'Создайте задачу для члена студсовета'}
-                </DialogDescription>
-              </DialogHeader>
-              <form onSubmit={editingTask ? handleEditTask : handleCreateTask}>
-                <div className="grid gap-4 py-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="task-title">Название *</Label>
-                    <Input
-                      id="task-title"
-                      placeholder="Введите название задачи"
-                      value={title}
-                      onChange={(e) => setTitle(e.target.value)}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="task-description">Описание</Label>
-                    <Textarea
-                      id="task-description"
-                      placeholder="Описание задачи"
-                      value={description}
-                      onChange={(e) => setDescription(e.target.value)}
-                      rows={3}
-                    />
-                  </div>
-                  <div className="space-y-3">
-                    <Label>Исполнители (укажите хотя бы одного)</Label>
-                    
-                    <div className="space-y-2">
-                      <Label className="text-sm font-normal">Члены студсовета</Label>
-                      <Select
-                        value=""
-                        onValueChange={(value) => {
-                          if (value && !assignedToUsers.includes(value)) {
-                            setAssignedToUsers([...assignedToUsers, value]);
-                          }
-                        }}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Выберите участника" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {councilMembers.length > 0 ? (
-                            councilMembers.map(member => (
-                              <SelectItem key={member.id} value={member.name}>
-                                {member.name} ({member.email})
-                              </SelectItem>
-                            ))
-                          ) : (
-                            <SelectItem value="none" disabled>Нет членов студсовета</SelectItem>
-                          )}
-                        </SelectContent>
-                      </Select>
-                      {assignedToUsers.length > 0 && (
-                        <div className="flex flex-wrap gap-2 mt-2">
-                          {assignedToUsers.map(userName => (
-                            <Badge key={userName} variant="secondary" className="gap-1">
-                              {userName}
-                              <button
-                                type="button"
-                                onClick={() => setAssignedToUsers(assignedToUsers.filter(n => n !== userName))}
-                                className="ml-1 hover:text-destructive"
-                              >
-                                <Icon name="X" size={14} />
-                              </button>
-                            </Badge>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label className="text-sm font-normal">Должности</Label>
-                      <Select
-                        value=""
-                        onValueChange={(value) => {
-                          const position = value as UserPosition;
-                          if (position && !assignedToPositions.includes(position)) {
-                            setAssignedToPositions([...assignedToPositions, position]);
-                          }
-                        }}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Выберите должность" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {allPositions.map(position => (
-                            <SelectItem key={position} value={position}>
-                              {getPositionName(position)}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      {assignedToPositions.length > 0 && (
-                        <div className="flex flex-wrap gap-2 mt-2">
-                          {assignedToPositions.map(position => (
-                            <Badge key={position} variant="secondary" className="gap-1">
-                              {getPositionName(position)}
-                              <button
-                                type="button"
-                                onClick={() => setAssignedToPositions(assignedToPositions.filter(p => p !== position))}
-                                className="ml-1 hover:text-destructive"
-                              >
-                                <Icon name="X" size={14} />
-                              </button>
-                            </Badge>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="task-priority">Приоритет</Label>
-                      <Select value={priority} onValueChange={(v) => setPriority(v as Task['priority'])}>
-                        <SelectTrigger id="task-priority">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="low">Низкий</SelectItem>
-                          <SelectItem value="medium">Средний</SelectItem>
-                          <SelectItem value="high">Высокий</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="task-due">Срок *</Label>
-                      <Input
-                        id="task-due"
-                        type="date"
-                        value={dueDate}
-                        onChange={(e) => setDueDate(e.target.value)}
-                      />
-                    </div>
-                  </div>
-                </div>
-                <DialogFooter>
-                  <Button type="submit" className="gap-2">
-                    <Icon name="Check" size={18} />
-                    {editingTask ? 'Сохранить' : 'Создать'}
-                  </Button>
-                </DialogFooter>
-              </form>
-            </DialogContent>
-          </Dialog>
+          <>
+            <Button className="gap-2" onClick={() => setOpen(true)}>
+              <Icon name="Plus" size={18} />
+              Создать задачу
+            </Button>
+            <TaskDialog
+              open={open}
+              onOpenChange={(isOpen) => {
+                setOpen(isOpen);
+                if (!isOpen) resetForm();
+              }}
+              editingTask={editingTask}
+              title={title}
+              setTitle={setTitle}
+              description={description}
+              setDescription={setDescription}
+              assignedToUsers={assignedToUsers}
+              setAssignedToUsers={setAssignedToUsers}
+              assignedToPositions={assignedToPositions}
+              setAssignedToPositions={setAssignedToPositions}
+              priority={priority}
+              setPriority={setPriority}
+              dueDate={dueDate}
+              setDueDate={setDueDate}
+              councilMembers={councilMembers}
+              allPositions={allPositions}
+              onSubmit={editingTask ? handleEditTask : handleCreateTask}
+            />
+          </>
         )}
       </div>
 
-      <div className="flex items-center gap-2 mb-4">
-        <Label className="text-sm">Фильтр:</Label>
-        <Select value={filterStatus} onValueChange={(v) => setFilterStatus(v as typeof filterStatus)}>
-          <SelectTrigger className="w-[180px]">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Все задачи</SelectItem>
-            <SelectItem value="pending">Ожидает</SelectItem>
-            <SelectItem value="in_progress">В работе</SelectItem>
-            <SelectItem value="completed">Выполнено</SelectItem>
-          </SelectContent>
-        </Select>
-        <span className="text-sm text-muted-foreground ml-2">
-          {filteredTasks.length} {filteredTasks.length === 1 ? 'задача' : filteredTasks.length < 5 ? 'задачи' : 'задач'}
-        </span>
-      </div>
+      <TaskFilters
+        filterStatus={filterStatus}
+        setFilterStatus={setFilterStatus}
+        tasksCount={filteredTasks.length}
+      />
 
       <div className="space-y-3">
         {filteredTasks.length === 0 ? (
@@ -482,126 +315,29 @@ export const CouncilTasksPanel = ({ canManage, userName, councilMembers, onTaskC
           </Card>
         ) : (
           filteredTasks.map(task => (
-            <Card key={task.id}>
-              <CardHeader>
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex-1">
-                    <CardTitle className="text-lg">{task.title}</CardTitle>
-                    <CardDescription className="mt-1">
-                      {task.description || 'Без описания'}
-                    </CardDescription>
-                  </div>
-                  <div className="flex gap-2">
-                    <Badge variant={getPriorityColor(task.priority)}>
-                      {getPriorityName(task.priority)}
-                    </Badge>
-                    <Badge variant={getStatusColor(task.status)}>
-                      {getStatusName(task.status)}
-                    </Badge>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="flex items-center gap-2 text-sm">
-                  <Icon name="Calendar" size={16} className="text-muted-foreground" />
-                  <span className="text-muted-foreground">Срок:</span>
-                  <span>{formatDate(task.dueDate)}</span>
-                </div>
-
-                <div className="flex items-center gap-2 text-sm">
-                  <Icon name="Clock" size={16} className="text-muted-foreground" />
-                  <span className="text-muted-foreground">Создано:</span>
-                  <span>{formatDateTime(task.createdAt)}</span>
-                </div>
-                
-                {task.assignedToUsers.length > 0 && (
-                  <div className="flex items-start gap-2 text-sm">
-                    <Icon name="User" size={16} className="text-muted-foreground mt-0.5" />
-                    <div className="flex-1">
-                      <span className="text-muted-foreground">Исполнители:</span>
-                      <div className="flex flex-wrap gap-1 mt-1">
-                        {task.assignedToUsers.map(userName => (
-                          <Badge key={userName} variant="outline">
-                            {userName}
-                          </Badge>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {task.assignedToPositions.length > 0 && (
-                  <div className="flex items-start gap-2 text-sm">
-                    <Icon name="Briefcase" size={16} className="text-muted-foreground mt-0.5" />
-                    <div className="flex-1">
-                      <span className="text-muted-foreground">Должности:</span>
-                      <div className="flex flex-wrap gap-1 mt-1">
-                        {task.assignedToPositions.map(position => (
-                          <Badge key={position} variant="outline">
-                            {getPositionName(position)}
-                          </Badge>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                <div className="flex items-center gap-2 pt-2 border-t">
-                  <Select
-                    value={task.status}
-                    onValueChange={(v) => handleStatusChange(task.id, v as Task['status'])}
-                  >
-                    <SelectTrigger className="w-[150px]">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="pending">Ожидает</SelectItem>
-                      <SelectItem value="in_progress">В работе</SelectItem>
-                      <SelectItem value="completed">Выполнено</SelectItem>
-                    </SelectContent>
-                  </Select>
-
-                  {canManage && (
-                    <div className="ml-auto flex gap-2">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => openEditDialog(task)}
-                      >
-                        <Icon name="Pencil" size={16} />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => setDeleteTaskId(task.id)}
-                      >
-                        <Icon name="Trash2" size={16} />
-                      </Button>
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
+            <TaskCard
+              key={task.id}
+              task={task}
+              canManage={canManage}
+              onStatusChange={handleStatusChange}
+              onEdit={openEditDialog}
+              onDelete={setDeleteTaskId}
+              formatDate={formatDate}
+              formatDateTime={formatDateTime}
+              getStatusColor={getStatusColor}
+              getPriorityColor={getPriorityColor}
+              getStatusName={getStatusName}
+              getPriorityName={getPriorityName}
+            />
           ))
         )}
       </div>
 
-      <AlertDialog open={deleteTaskId !== null} onOpenChange={(open) => !open && setDeleteTaskId(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Удалить задачу?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Это действие нельзя отменить. Задача будет удалена навсегда.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Отмена</AlertDialogCancel>
-            <AlertDialogAction onClick={() => deleteTaskId && handleDeleteTask(deleteTaskId)}>
-              Удалить
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <DeleteTaskDialog
+        open={deleteTaskId !== null}
+        onOpenChange={(open) => !open && setDeleteTaskId(null)}
+        onConfirm={() => deleteTaskId && handleDeleteTask(deleteTaskId)}
+      />
     </div>
   );
 };
