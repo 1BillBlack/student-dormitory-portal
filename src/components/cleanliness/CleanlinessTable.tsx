@@ -19,6 +19,7 @@ interface CleanlinessTableProps {
   getScore: (floor: number, date: string, room: string) => CleanlinessScore | undefined;
   isRoomClosed: (date: string, room: string) => boolean;
   isFloorClosed: (date: string, floor: number) => boolean;
+  onToggleRoomClosed: (date: string, room: string) => void;
 }
 
 export const CleanlinessTable = ({
@@ -35,6 +36,7 @@ export const CleanlinessTable = ({
   getScore,
   isRoomClosed,
   isFloorClosed,
+  onToggleRoomClosed,
 }: CleanlinessTableProps) => {
   const getScoreColor = (score: number | string): string => {
     if (score === 5) return 'bg-green-100 text-green-800 border-green-300';
@@ -66,31 +68,42 @@ export const CleanlinessTable = ({
     
     if (editMode && canEdit) {
       return (
-        <div className="flex items-center gap-1">
-          <Select
-            value={scoreData?.score?.toString() || ''}
-            onValueChange={(value) => onScoreChange(floor, date, room, value)}
-          >
-            <SelectTrigger className="h-8 w-16 text-xs">
-              <SelectValue placeholder="-" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="5">5</SelectItem>
-              <SelectItem value="4">4</SelectItem>
-              <SelectItem value="3">3</SelectItem>
-              <SelectItem value="2">2</SelectItem>
-            </SelectContent>
-          </Select>
-          {scoreData && (
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-6 w-6"
-              onClick={() => onDeleteScore(floor, date, room)}
+        <div className="flex flex-col gap-1">
+          <div className="flex items-center gap-1">
+            <Select
+              value={scoreData?.score?.toString() || ''}
+              onValueChange={(value) => onScoreChange(floor, date, room, value)}
             >
-              <Icon name="X" size={12} />
-            </Button>
-          )}
+              <SelectTrigger className="h-8 w-16 text-xs">
+                <SelectValue placeholder="-" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="5">5</SelectItem>
+                <SelectItem value="4">4</SelectItem>
+                <SelectItem value="3">3</SelectItem>
+                <SelectItem value="2">2</SelectItem>
+              </SelectContent>
+            </Select>
+            {scoreData && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6"
+                onClick={() => onDeleteScore(floor, date, room)}
+              >
+                <Icon name="X" size={12} />
+              </Button>
+            )}
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-6 text-xs px-2"
+            onClick={() => onToggleRoomClosed(date, room)}
+          >
+            <Icon name="Lock" size={10} className="mr-1" />
+            Закрыть
+          </Button>
         </div>
       );
     }

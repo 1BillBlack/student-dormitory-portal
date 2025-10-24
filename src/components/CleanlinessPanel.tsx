@@ -151,6 +151,7 @@ export const CleanlinessPanel = ({ currentUser: propCurrentUser, users: propUser
             getScore={getScore}
             isRoomClosed={isRoomClosed}
             isFloorClosed={isFloorClosed}
+            onToggleRoomClosed={handleToggleRoomClosed}
           />
         </CardContent>
       </Card>
@@ -171,7 +172,6 @@ export const CleanlinessPanel = ({ currentUser: propCurrentUser, users: propUser
         viewMode={viewMode}
         dates={dates}
         selectedFloor={currentFloor}
-        canCloseFloors={canCloseFloors}
       />
 
       <AlertDialog open={!!deleteScoreDialog} onOpenChange={(open) => !open && setDeleteScoreDialog(null)}>

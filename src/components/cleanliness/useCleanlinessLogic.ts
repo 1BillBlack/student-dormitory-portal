@@ -233,6 +233,33 @@ export const useCleanlinessLogic = (currentUser: User) => {
     return settings.closedFloors[floor.toString()] || false;
   };
 
+  const handleToggleRoomClosed = (date: string, room: string) => {
+    const newSettings = { ...settings };
+    if (!newSettings.closedRooms[date]) {
+      newSettings.closedRooms[date] = [];
+    }
+    
+    const index = newSettings.closedRooms[date].indexOf(room);
+    if (index > -1) {
+      newSettings.closedRooms[date] = newSettings.closedRooms[date].filter(r => r !== room);
+      if (newSettings.closedRooms[date].length === 0) {
+        delete newSettings.closedRooms[date];
+      }
+      toast({
+        title: 'Комната открыта',
+        description: `Комната ${room} открыта на ${date}`,
+      });
+    } else {
+      newSettings.closedRooms[date].push(room);
+      toast({
+        title: 'Комната закрыта',
+        description: `Комната ${room} закрыта на ${date}`,
+      });
+    }
+    
+    saveSettings(newSettings);
+  };
+
   const dates = viewMode === 'week' 
     ? getWeekDates(periodOffset) 
     : getMonthDates(periodOffset);
@@ -270,6 +297,7 @@ export const useCleanlinessLogic = (currentUser: User) => {
     getScore,
     isRoomClosed,
     isFloorClosed,
+    handleToggleRoomClosed,
     dates,
   };
 };

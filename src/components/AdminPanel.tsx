@@ -103,8 +103,18 @@ export const AdminPanel = ({
 
         <TabsContent value="settings" className="space-y-4">
           {canManageUsers ? (
-            <div className="text-center text-muted-foreground py-8">
-              Настройки системы будут доступны позже
+            <div className="space-y-6">
+              <div>
+                <h3 className="text-lg font-semibold mb-4">Управление этажами</h3>
+                <div className="p-4 border rounded-lg">
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Закрытые этажи не отображаются в журнале чистоты
+                  </p>
+                  <div className="text-center text-muted-foreground py-4">
+                    Функционал в разработке
+                  </div>
+                </div>
+              </div>
             </div>
           ) : (
             <NoAccessMessage />
