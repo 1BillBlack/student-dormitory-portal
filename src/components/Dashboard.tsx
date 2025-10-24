@@ -266,15 +266,33 @@ export const Dashboard = () => {
   };
 
   const canSeeAnnouncement = (announcement: any) => {
+    // Админы, модераторы и менеджеры видят всё
+    if (['manager', 'admin', 'moderator'].includes(user?.role || '')) return true;
+    
+    // Руководство студсовета видит всё
+    const isLeadership = user?.positions?.some(p => 
+      ['council_president', 'council_vice_president', 'council_secretary'].includes(p)
+    );
+    if (isLeadership) return true;
+    
+    // Автор всегда видит своё объявление
+    if (announcement.createdBy === user?.id) return true;
+    
+    // Для всех
     if (announcement.audience === 'all') return true;
+    
+    // Только студсовет
     if (announcement.audience === 'council') {
       return hasCouncilAccess;
     }
+    
+    // Этажи
     if (announcement.audience.startsWith('floor_')) {
       const floor = announcement.audience.split('_')[1];
       const userFloorNum = user?.room ? user.room.charAt(0) : null;
       return userFloorNum === floor;
     }
+    
     return false;
   };
 
