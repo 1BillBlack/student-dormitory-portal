@@ -36,7 +36,7 @@ export const WorkShiftsArchive = ({ archivedShifts, users, currentUserId, canVie
   };
 
   const userShiftsMap = new Map<string, WorkShift[]>();
-  archivedShifts.forEach(shift => {
+  (archivedShifts || []).forEach(shift => {
     if (!userShiftsMap.has(shift.userId)) {
       userShiftsMap.set(shift.userId, []);
     }
