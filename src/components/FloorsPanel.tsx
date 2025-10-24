@@ -210,7 +210,7 @@ export const FloorsPanel = ({ users, currentUser, onApproveRoom, onRejectRoom, u
               <span className="hidden sm:inline">{floor} этаж</span>
               <span className="sm:hidden">{floor}</span>
               {floorGroups[floor].length > 0 && (
-                <Badge variant="destructive" className="ml-1 h-5 w-5 p-0 text-xs">
+                <Badge variant="destructive" className="ml-1 h-5 w-5 p-0 text-xs flex items-center justify-center">
                   {floorGroups[floor].length}
                 </Badge>
               )}

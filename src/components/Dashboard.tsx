@@ -161,27 +161,27 @@ export const Dashboard = () => {
     const roomNumber = parseInt(newRoom);
     const floor = Math.floor(roomNumber / 100);
     
-    const floorHeadPosition = `floor_${floor}_head`;
-    const floorHeads = users.filter(u => 
-      u.positions?.includes(floorHeadPosition as any) ||
-      u.positions?.includes('chairman' as any) ||
-      u.positions?.includes('vice_chairman' as any) ||
-      ['manager', 'admin', 'moderator'].includes(u.role)
-    );
+    const firstChar = newRoom.charAt(0);
+    const floorNum = parseInt(firstChar);
     
-    if (floorHeads.length > 0) {
-      const notificationText = user.room 
-        ? `${user.name} запросил смену комнаты с ${user.room} на ${newRoom}`
-        : `Новый участник ${user.name} запросил комнату ${newRoom}`;
+    if (!isNaN(floorNum) && floorNum >= 2 && floorNum <= 5) {
+      const floorHeadPosition = `floor_${floorNum}_head`;
+      const floorHead = users.find(u => 
+        u.positions?.includes(floorHeadPosition as any)
+      );
       
-      floorHeads.forEach(floorHead => {
+      if (floorHead) {
+        const notificationText = user.room 
+          ? `${user.name} запросил смену комнаты с ${user.room} на ${newRoom}`
+          : `Новый участник ${user.name} запросил комнату ${newRoom}`;
+        
         addNotification({
           type: 'room_request',
           title: 'Новая заявка на комнату',
           message: notificationText,
           userId: floorHead.id,
         });
-      });
+      }
     }
   };
 
@@ -335,7 +335,7 @@ export const Dashboard = () => {
                 <Icon name="Settings" size={18} />
                 <span className="hidden sm:inline">Админ-панель</span>
                 {pendingRoomsCount > 0 && (
-                  <Badge variant="destructive" className="ml-1 h-5 min-w-5 px-1 text-xs">
+                  <Badge variant="destructive" className="ml-1 h-5 min-w-5 px-1 text-xs flex items-center justify-center">
                     {pendingRoomsCount}
                   </Badge>
                 )}
