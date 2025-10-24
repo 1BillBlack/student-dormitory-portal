@@ -221,7 +221,7 @@ export const WorkShiftsPanel = ({ currentUser }: WorkShiftsPanelProps) => {
           <div className="text-center py-8 text-muted-foreground"><Icon name="CheckCircle" size={48} className="mx-auto mb-4 opacity-50" /><p>У вас нет отработок</p></div>
         ) : (
           <div className="space-y-3">
-            {myShifts.map(s => (
+            {myShifts.filter(s => s.completedDays < s.days).map(s => (
               <Card key={s.id}>
                 <CardHeader className="p-4">
                   <div className="flex flex-col sm:flex-row justify-between items-start gap-3">
@@ -229,8 +229,8 @@ export const WorkShiftsPanel = ({ currentUser }: WorkShiftsPanelProps) => {
                       <CardTitle className="text-base">{s.days} дн. отработок</CardTitle>
                       <CardDescription className="mt-1">Назначено: {formatDate(s.assignedAt)} ({s.assignedByName})</CardDescription>
                     </div>
-                    <Badge variant={s.completedDays >= s.days ? 'default' : 'destructive'} className="shrink-0">
-                      {s.completedDays >= s.days ? 'Выполнено' : `Осталось: ${s.days - s.completedDays} дн.`}
+                    <Badge variant="destructive" className="shrink-0">
+                      Осталось: {s.days - s.completedDays} дн.
                     </Badge>
                   </div>
                 </CardHeader>
@@ -243,6 +243,57 @@ export const WorkShiftsPanel = ({ currentUser }: WorkShiftsPanelProps) => {
                 </CardContent>
               </Card>
             ))}
+            
+            {myShifts.filter(s => s.completedDays >= s.days).length > 0 && (
+              <Card>
+                <CardHeader className="p-4">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      const newExpanded = new Set(expandedUsers);
+                      if (newExpanded.has(currentUser.id)) {
+                        newExpanded.delete(currentUser.id);
+                      } else {
+                        newExpanded.add(currentUser.id);
+                      }
+                      setExpandedUsers(newExpanded);
+                    }}
+                    className="w-full justify-between"
+                  >
+                    <span className="text-sm font-medium">
+                      Выполненные отработки ({myShifts.filter(s => s.completedDays >= s.days).length})
+                    </span>
+                    <Icon name={expandedUsers.has(currentUser.id) ? "ChevronUp" : "ChevronDown"} size={16} />
+                  </Button>
+                </CardHeader>
+                
+                {expandedUsers.has(currentUser.id) && (
+                  <CardContent className="p-4 pt-0">
+                    <div className="space-y-3">
+                      {myShifts.filter(s => s.completedDays >= s.days).map(s => (
+                        <div key={s.id} className="p-3 bg-muted/50 rounded-lg">
+                          <div className="flex justify-between items-start gap-3 mb-2">
+                            <div className="flex-1">
+                              <div className="font-medium">{s.days} дн. отработок</div>
+                              <div className="text-xs text-muted-foreground mt-1">
+                                Назначено: {formatDate(s.assignedAt)} ({s.assignedByName})
+                              </div>
+                            </div>
+                            <Badge variant="default" className="shrink-0">Выполнено</Badge>
+                          </div>
+                          <div className="space-y-1 text-sm">
+                            <div><span className="text-muted-foreground">Причина: </span><span>{s.reason}</span></div>
+                            <div><span className="text-muted-foreground">Отработано: </span><span className="font-medium">{s.completedDays} из {s.days} дн.</span></div>
+                            {s.completedAt && <div className="text-xs text-muted-foreground">Завершено: {formatDate(s.completedAt)} ({s.completedByName})</div>}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                )}
+              </Card>
+            )}
           </div>
         )}
       </div>
@@ -289,7 +340,11 @@ export const WorkShiftsPanel = ({ currentUser }: WorkShiftsPanelProps) => {
         <div className="space-y-3">
           {filtered.map(u => {
             const uShifts = workShifts.filter(s => s.userId === u.id);
+            const activeShifts = uShifts.filter(s => s.completedDays < s.days);
+            const completedShifts = uShifts.filter(s => s.completedDays >= s.days);
             const uTotals = getUserTotalDays(u.id);
+            const isExpanded = expandedUsers.has(u.id);
+            
             return (
               <Card key={u.id}>
                 <CardHeader className="p-4">
@@ -307,14 +362,14 @@ export const WorkShiftsPanel = ({ currentUser }: WorkShiftsPanelProps) => {
                 {uShifts.length > 0 && (
                   <CardContent className="p-4 pt-0">
                     <div className="space-y-2">
-                      {uShifts.map(s => (
+                      {activeShifts.map(s => (
                         <div key={s.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 p-2 bg-muted rounded-lg">
                           <div className="flex-1 text-sm min-w-0">
                             <div className="font-medium break-words">{s.days} дн. • {s.reason}</div>
                             <div className="text-xs text-muted-foreground break-all">{formatDate(s.assignedAt)} • Отработано: {s.completedDays}/{s.days}</div>
                           </div>
                           <div className="flex gap-1 shrink-0">
-                            {canComplete && s.completedDays < s.days && (
+                            {canComplete && (
                               <Button variant="ghost" size="icon" onClick={() => { setSelectedShiftId(s.id); setCompleteOpen(true); }}>
                                 <Icon name="CheckCircle" size={16} className="text-green-600" />
                               </Button>
@@ -327,6 +382,55 @@ export const WorkShiftsPanel = ({ currentUser }: WorkShiftsPanelProps) => {
                           </div>
                         </div>
                       ))}
+                      
+                      {completedShifts.length > 0 && (
+                        <div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              const newExpanded = new Set(expandedUsers);
+                              if (isExpanded) {
+                                newExpanded.delete(u.id);
+                              } else {
+                                newExpanded.add(u.id);
+                              }
+                              setExpandedUsers(newExpanded);
+                            }}
+                            className="w-full justify-between"
+                          >
+                            <span className="text-xs text-muted-foreground">
+                              Выполненные отработки ({completedShifts.length})
+                            </span>
+                            <Icon name={isExpanded ? "ChevronUp" : "ChevronDown"} size={16} />
+                          </Button>
+                          
+                          {isExpanded && (
+                            <div className="space-y-2 mt-2">
+                              {completedShifts.map(s => (
+                                <div key={s.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 p-2 bg-muted/50 rounded-lg">
+                                  <div className="flex-1 text-sm min-w-0">
+                                    <div className="font-medium break-words flex items-center gap-2">
+                                      {s.days} дн. • {s.reason}
+                                      <Badge variant="default" className="text-xs">Выполнено</Badge>
+                                    </div>
+                                    <div className="text-xs text-muted-foreground break-all">
+                                      {formatDate(s.assignedAt)} • Отработано: {s.completedDays}/{s.days}
+                                    </div>
+                                  </div>
+                                  <div className="flex gap-1 shrink-0">
+                                    {canDelete && (
+                                      <Button variant="ghost" size="icon" onClick={() => { setSelectedShiftId(s.id); setDeleteOpen(true); }}>
+                                        <Icon name="Trash2" size={16} className="text-destructive" />
+                                      </Button>
+                                    )}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </CardContent>
                 )}
