@@ -2,13 +2,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import Icon from '@/components/ui/icon';
 import { useWorkShifts } from '@/contexts/WorkShiftsContext';
 import { useUsers } from '@/contexts/UsersContext';
@@ -16,8 +10,13 @@ import { useNotifications } from '@/contexts/NotificationsContext';
 import { useLogs } from '@/contexts/LogsContext';
 import { useToast } from '@/hooks/use-toast';
 import { User } from '@/types/auth';
-import { sortPositionsByRank, getPositionName } from '@/utils/positions';
 import { WorkShiftsArchive } from '@/components/WorkShiftsArchive';
+import { WorkShiftsList } from '@/components/WorkShifts/WorkShiftsList';
+import { MyWorkShifts } from '@/components/WorkShifts/MyWorkShifts';
+import { AssignWorkShiftDialog } from '@/components/WorkShifts/AssignWorkShiftDialog';
+import { CompleteWorkShiftDialog } from '@/components/WorkShifts/CompleteWorkShiftDialog';
+import { DeleteWorkShiftDialog } from '@/components/WorkShifts/DeleteWorkShiftDialog';
+import { WorkShiftsFilters } from '@/components/WorkShifts/WorkShiftsFilters';
 
 interface WorkShiftsPanelProps {
   currentUser: User;
@@ -29,7 +28,7 @@ const formatDate = (dateStr: string) => {
 };
 
 export const WorkShiftsPanel = ({ currentUser }: WorkShiftsPanelProps) => {
-  const { workShifts, archivedShifts, addWorkShift, completeWorkShift, deleteWorkShift, getUserTotalDays, getUserArchivedShifts } = useWorkShifts();
+  const { workShifts, addWorkShift, completeWorkShift, deleteWorkShift, getUserTotalDays } = useWorkShifts();
   const { users } = useUsers();
   const { addNotification } = useNotifications();
   const { addLog } = useLogs();
@@ -50,8 +49,6 @@ export const WorkShiftsPanel = ({ currentUser }: WorkShiftsPanelProps) => {
   const [userSearch, setUserSearch] = useState('');
   const [userSortBy, setUserSortBy] = useState<'name' | 'room' | 'group' | 'position'>('name');
   const [showArchive, setShowArchive] = useState(false);
-  const [archiveSearch, setArchiveSearch] = useState('');
-  const [archiveSortBy, setArchiveSortBy] = useState<'date' | 'reason'>('date');
   const [expandedUsers, setExpandedUsers] = useState<Set<string>>(new Set());
 
   const canManage = ['manager', 'admin', 'moderator'].includes(currentUser.role) || 
@@ -72,10 +69,8 @@ export const WorkShiftsPanel = ({ currentUser }: WorkShiftsPanelProps) => {
       if (floor !== userFloor) return false;
     }
     
-    // Скрыть администраторов и менеджеров
     if (['manager', 'admin'].includes(u.role)) return false;
     
-    // Скрыть пользователей без отработок
     const uTotals = getUserTotalDays(u.id);
     if (uTotals.remaining === 0 && uTotals.completed === 0) return false;
     
@@ -99,7 +94,6 @@ export const WorkShiftsPanel = ({ currentUser }: WorkShiftsPanelProps) => {
       if (floor !== userFloor) return false;
     }
     
-    // Не показывать администраторов и менеджеров
     if (['manager', 'admin'].includes(u.role)) return false;
     
     const match = u.name.toLowerCase().includes(userSearch.toLowerCase()) ||
@@ -111,8 +105,8 @@ export const WorkShiftsPanel = ({ currentUser }: WorkShiftsPanelProps) => {
     if (userSortBy === 'room') return (a.room || '').localeCompare(b.room || '');
     if (userSortBy === 'group') return (a.group || '').localeCompare(b.group || '');
     if (userSortBy === 'position') {
-      const aPos = a.positions && a.positions.length > 0 ? sortPositionsByRank(a.positions)[0] : 'zzz';
-      const bPos = b.positions && b.positions.length > 0 ? sortPositionsByRank(b.positions)[0] : 'zzz';
+      const aPos = a.positions && a.positions.length > 0 ? a.positions[0] : 'zzz';
+      const bPos = b.positions && b.positions.length > 0 ? b.positions[0] : 'zzz';
       return aPos.localeCompare(bPos);
     }
     return 0;
@@ -173,7 +167,7 @@ export const WorkShiftsPanel = ({ currentUser }: WorkShiftsPanelProps) => {
 
   const handleComplete = () => {
     if (!selectedShiftId || !completeDays) {
-      toast({ title: 'Ошибка', description: 'Заполните все поля', variant: 'destructive' });
+      toast({ title: 'Ошибка', description: 'Укажите количество дней', variant: 'destructive' });
       return;
     }
     const d = parseInt(completeDays);
@@ -183,10 +177,14 @@ export const WorkShiftsPanel = ({ currentUser }: WorkShiftsPanelProps) => {
     }
     const shift = workShifts.find(s => s.id === selectedShiftId);
     if (!shift) return;
-
+    if (d > shift.days - shift.completedDays) {
+      toast({ title: 'Ошибка', description: 'Указано больше дней, чем осталось', variant: 'destructive' });
+      return;
+    }
     completeWorkShift(selectedShiftId, d, currentUser.id, currentUser.name);
+    addNotification({ type: 'work_shift_completed', title: 'Списаны отработки', message: `Списано ${d} дн. отработок`, userId: shift.userId });
     addLog({ action: 'work_shift_completed', userId: currentUser.id, userName: currentUser.name, details: `Списал ${d} дн. отработок`, targetUserId: shift.userId, targetUserName: shift.userName });
-    toast({ title: 'Успешно', description: `Списано ${d} дн. отработок` });
+    toast({ title: 'Успешно', description: `Списано ${d} дн.` });
     setCompleteOpen(false);
     setSelectedShiftId(null);
     setCompleteDays('');
@@ -196,356 +194,184 @@ export const WorkShiftsPanel = ({ currentUser }: WorkShiftsPanelProps) => {
     if (!selectedShiftId) return;
     const shift = workShifts.find(s => s.id === selectedShiftId);
     if (!shift) return;
-
     deleteWorkShift(selectedShiftId);
-    addLog({ action: 'work_shift_deleted', userId: currentUser.id, userName: currentUser.name, details: `Удалил отработку (${shift.days} дн.)`, targetUserId: shift.userId, targetUserName: shift.userName });
-    toast({ title: 'Удалено', description: 'Отработка удалена' });
+    addNotification({ type: 'work_shift_deleted', title: 'Удалены отработки', message: 'Ваши отработки были удалены', userId: shift.userId });
+    addLog({ action: 'work_shift_deleted', userId: currentUser.id, userName: currentUser.name, details: `Удалил отработки (${shift.days} дн., причина: ${shift.reason})`, targetUserId: shift.userId, targetUserName: shift.userName });
+    toast({ title: 'Успешно', description: 'Отработки удалены' });
     setDeleteOpen(false);
     setSelectedShiftId(null);
   };
 
+  if (showArchive) {
+    return <WorkShiftsArchive currentUser={currentUser} onBack={() => setShowArchive(false)} />;
+  }
+
   if (!canManage && !isFloorHead) {
     return (
-      <div className="space-y-6">
-        <h3 className="text-lg font-semibold">Мои отработки</h3>
+      <div className="space-y-4">
         <Card>
-          <CardHeader><CardTitle>Статистика</CardTitle></CardHeader>
+          <CardHeader>
+            <CardTitle>Мои отработки</CardTitle>
+            <CardDescription>Просмотр назначенных отработок</CardDescription>
+          </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-2 gap-4">
-              <div><p className="text-sm text-muted-foreground">Осталось</p><p className="text-2xl font-bold text-destructive">{myTotals.remaining} дн.</p></div>
-              <div><p className="text-sm text-muted-foreground">Отработано</p><p className="text-2xl font-bold text-green-600">{myTotals.completed} дн.</p></div>
+            <div className="flex flex-wrap gap-3 mb-4">
+              <Badge variant={myTotals.remaining > 0 ? 'destructive' : 'default'} className="text-base px-4 py-2">
+                Осталось: {myTotals.remaining} дн.
+              </Badge>
+              <Badge variant="secondary" className="text-base px-4 py-2">
+                Отработано: {myTotals.completed} дн.
+              </Badge>
             </div>
           </CardContent>
         </Card>
-        {!myShifts.length ? (
-          <div className="text-center py-8 text-muted-foreground"><Icon name="CheckCircle" size={48} className="mx-auto mb-4 opacity-50" /><p>У вас нет отработок</p></div>
-        ) : (
-          <div className="space-y-3">
-            {myShifts.filter(s => s.completedDays < s.days).map(s => (
-              <Card key={s.id}>
-                <CardHeader className="p-4">
-                  <div className="flex flex-col sm:flex-row justify-between items-start gap-3">
-                    <div className="flex-1 min-w-0">
-                      <CardTitle className="text-base">{s.days} дн. отработок</CardTitle>
-                      <CardDescription className="mt-1">Назначено: {formatDate(s.assignedAt)} ({s.assignedByName})</CardDescription>
-                    </div>
-                    <Badge variant="destructive" className="shrink-0">
-                      Осталось: {s.days - s.completedDays} дн.
-                    </Badge>
-                  </div>
-                </CardHeader>
-                <CardContent className="p-4 pt-0">
-                  <div className="space-y-2 text-sm">
-                    <div><span className="text-muted-foreground">Причина: </span><span>{s.reason}</span></div>
-                    <div><span className="text-muted-foreground">Отработано: </span><span className="font-medium">{s.completedDays} из {s.days} дн.</span></div>
-                    {s.completedAt && <div><span className="text-muted-foreground">Последнее списание: </span><span>{formatDate(s.completedAt)} ({s.completedByName})</span></div>}
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-            
-            {myShifts.filter(s => s.completedDays >= s.days).length > 0 && (
-              <Card>
-                <CardHeader className="p-4">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => {
-                      const newExpanded = new Set(expandedUsers);
-                      if (newExpanded.has(currentUser.id)) {
-                        newExpanded.delete(currentUser.id);
-                      } else {
-                        newExpanded.add(currentUser.id);
-                      }
-                      setExpandedUsers(newExpanded);
-                    }}
-                    className="w-full justify-between"
-                  >
-                    <span className="text-sm font-medium">
-                      Выполненные отработки ({myShifts.filter(s => s.completedDays >= s.days).length})
-                    </span>
-                    <Icon name={expandedUsers.has(currentUser.id) ? "ChevronUp" : "ChevronDown"} size={16} />
-                  </Button>
-                </CardHeader>
-                
-                {expandedUsers.has(currentUser.id) && (
-                  <CardContent className="p-4 pt-0">
-                    <div className="space-y-3">
-                      {myShifts.filter(s => s.completedDays >= s.days).map(s => (
-                        <div key={s.id} className="p-3 bg-muted/50 rounded-lg">
-                          <div className="flex justify-between items-start gap-3 mb-2">
-                            <div className="flex-1">
-                              <div className="font-medium">{s.days} дн. отработок</div>
-                              <div className="text-xs text-muted-foreground mt-1">
-                                Назначено: {formatDate(s.assignedAt)} ({s.assignedByName})
-                              </div>
-                            </div>
-                            <Badge variant="default" className="shrink-0">Выполнено</Badge>
-                          </div>
-                          <div className="space-y-1 text-sm">
-                            <div><span className="text-muted-foreground">Причина: </span><span>{s.reason}</span></div>
-                            <div><span className="text-muted-foreground">Отработано: </span><span className="font-medium">{s.completedDays} из {s.days} дн.</span></div>
-                            {s.completedAt && <div className="text-xs text-muted-foreground">Завершено: {formatDate(s.completedAt)} ({s.completedByName})</div>}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                )}
-              </Card>
-            )}
-          </div>
-        )}
+        <MyWorkShifts 
+          shifts={myShifts}
+          expandedUsers={expandedUsers}
+          setExpandedUsers={setExpandedUsers}
+          currentUserId={currentUser.id}
+          formatDate={formatDate}
+        />
       </div>
     );
   }
 
+  const filteredShifts = workShifts.filter(s => {
+    const u = users.find(x => x.id === s.userId);
+    if (!u) return false;
+    return filtered.some(f => f.id === u.id);
+  });
+
   return (
-    <div className="space-y-6">
-      <Tabs defaultValue="active" className="w-full">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
-          <TabsList>
-            <TabsTrigger value="active" className="gap-2">
-              <Icon name="Clock" size={16} />
-              Активные
-            </TabsTrigger>
-            <TabsTrigger value="archive" className="gap-2">
-              <Icon name="Archive" size={16} />
-              Архив
-            </TabsTrigger>
-          </TabsList>
-          {canManage && <Button onClick={() => setAssignOpen(true)} className="gap-2 w-full sm:w-auto"><Icon name="Plus" size={18} />Назначить отработки</Button>}
-        </div>
+    <div className="space-y-4">
+      <Card>
+        <CardHeader>
+          <div className="flex flex-col sm:flex-row justify-between items-start gap-3">
+            <div>
+              <CardTitle>Отработки</CardTitle>
+              <CardDescription>Управление отработками пользователей</CardDescription>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Button onClick={() => setShowArchive(true)} variant="outline" size="sm">
+                <Icon name="Archive" size={16} className="mr-2" />
+                Архив
+              </Button>
+              <Button onClick={() => setAssignOpen(true)} size="sm">
+                <Icon name="Plus" size={16} className="mr-2" />
+                Назначить
+              </Button>
+            </div>
+          </div>
+        </CardHeader>
+      </Card>
+
+      <Tabs defaultValue="active">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="active">Активные</TabsTrigger>
+          <TabsTrigger value="my">Мои отработки</TabsTrigger>
+        </TabsList>
 
         <TabsContent value="active" className="space-y-4">
-          <div className="grid gap-3 sm:grid-cols-2">
-            <Input placeholder="Поиск..." value={search} onChange={(e) => setSearch(e.target.value)} />
-            <Select value={sortBy} onValueChange={(v: any) => setSortBy(v)}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="name">По имени</SelectItem>
-                <SelectItem value="room">По комнате</SelectItem>
-                <SelectItem value="group">По группе</SelectItem>
-                <SelectItem value="floor">По этажу</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Фильтры</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <WorkShiftsFilters
+                search={search}
+                setSearch={setSearch}
+                sortBy={sortBy}
+                setSortBy={setSortBy}
+              />
+            </CardContent>
+          </Card>
 
-      {filtered.length === 0 ? (
-        <div className="text-center py-8 text-muted-foreground">
-          <Icon name="Users" size={48} className="mx-auto mb-4 opacity-50" />
-          <p>Нет пользователей с отработками</p>
-        </div>
-      ) : (
-        <div className="space-y-3">
-          {filtered.map(u => {
-            const uShifts = workShifts.filter(s => s.userId === u.id);
-            const activeShifts = uShifts.filter(s => s.completedDays < s.days);
-            const completedShifts = uShifts.filter(s => s.completedDays >= s.days);
-            const uTotals = getUserTotalDays(u.id);
-            const isExpanded = expandedUsers.has(u.id);
-            
-            return (
-              <Card key={u.id}>
-                <CardHeader className="p-4">
-                  <div className="flex flex-col sm:flex-row justify-between items-start gap-3">
-                    <div className="flex-1 min-w-0">
-                      <CardTitle className="text-base break-words">{u.name}</CardTitle>
-                      <CardDescription className="break-all">{u.room && `Комната ${u.room}`}{u.group && ` • Группа ${u.group}`}</CardDescription>
-                    </div>
-                    <div className="flex flex-col sm:flex-row gap-2 shrink-0">
-                      <Badge variant={uTotals.remaining > 0 ? 'destructive' : 'default'} className="text-nowrap">Осталось: {uTotals.remaining} дн.</Badge>
-                      <Badge variant="secondary" className="text-nowrap">Отработано: {uTotals.completed} дн.</Badge>
-                    </div>
-                  </div>
-                </CardHeader>
-                {uShifts.length > 0 && (
-                  <CardContent className="p-4 pt-0">
-                    <div className="space-y-2">
-                      {activeShifts.map(s => (
-                        <div key={s.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 p-2 bg-muted rounded-lg">
-                          <div className="flex-1 text-sm min-w-0">
-                            <div className="font-medium break-words">{s.days} дн. • {s.reason}</div>
-                            <div className="text-xs text-muted-foreground break-all">{formatDate(s.assignedAt)} • Отработано: {s.completedDays}/{s.days}</div>
-                          </div>
-                          <div className="flex gap-1 shrink-0">
-                            {canComplete && (
-                              <Button variant="ghost" size="icon" onClick={() => { setSelectedShiftId(s.id); setCompleteOpen(true); }}>
-                                <Icon name="CheckCircle" size={16} className="text-green-600" />
-                              </Button>
-                            )}
-                            {canDelete && (
-                              <Button variant="ghost" size="icon" onClick={() => { setSelectedShiftId(s.id); setDeleteOpen(true); }}>
-                                <Icon name="Trash2" size={16} className="text-destructive" />
-                              </Button>
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                      
-                      {completedShifts.length > 0 && (
-                        <div>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => {
-                              const newExpanded = new Set(expandedUsers);
-                              if (isExpanded) {
-                                newExpanded.delete(u.id);
-                              } else {
-                                newExpanded.add(u.id);
-                              }
-                              setExpandedUsers(newExpanded);
-                            }}
-                            className="w-full justify-between"
-                          >
-                            <span className="text-xs text-muted-foreground">
-                              Выполненные отработки ({completedShifts.length})
-                            </span>
-                            <Icon name={isExpanded ? "ChevronUp" : "ChevronDown"} size={16} />
-                          </Button>
-                          
-                          {isExpanded && (
-                            <div className="space-y-2 mt-2">
-                              {completedShifts.map(s => (
-                                <div key={s.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 p-2 bg-muted/50 rounded-lg">
-                                  <div className="flex-1 text-sm min-w-0">
-                                    <div className="font-medium break-words flex items-center gap-2">
-                                      {s.days} дн. • {s.reason}
-                                      <Badge variant="default" className="text-xs">Выполнено</Badge>
-                                    </div>
-                                    <div className="text-xs text-muted-foreground break-all">
-                                      {formatDate(s.assignedAt)} • Отработано: {s.completedDays}/{s.days}
-                                    </div>
-                                  </div>
-                                  <div className="flex gap-1 shrink-0">
-                                    {canDelete && (
-                                      <Button variant="ghost" size="icon" onClick={() => { setSelectedShiftId(s.id); setDeleteOpen(true); }}>
-                                        <Icon name="Trash2" size={16} className="text-destructive" />
-                                      </Button>
-                                    )}
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  </CardContent>
-                )}
-              </Card>
-            );
-          })}
-        </div>
-      )}
+          {!filteredShifts.length ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <Icon name="Users" size={48} className="mx-auto mb-4 opacity-50" />
+              <p>Нет пользователей с отработками</p>
+            </div>
+          ) : (
+            <WorkShiftsList
+              shifts={filteredShifts}
+              expandedUsers={expandedUsers}
+              setExpandedUsers={setExpandedUsers}
+              canComplete={canComplete}
+              canDelete={canDelete}
+              onComplete={(id) => {
+                setSelectedShiftId(id);
+                setCompleteOpen(true);
+              }}
+              onDelete={(id) => {
+                setSelectedShiftId(id);
+                setDeleteOpen(true);
+              }}
+              formatDate={formatDate}
+              getUserTotalDays={getUserTotalDays}
+            />
+          )}
         </TabsContent>
 
-        <TabsContent value="archive" className="space-y-4">
-          <WorkShiftsArchive 
-            archivedShifts={archivedShifts}
-            users={users}
+        <TabsContent value="my" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Мои отработки</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-wrap gap-3">
+                <Badge variant={myTotals.remaining > 0 ? 'destructive' : 'default'} className="text-base px-4 py-2">
+                  Осталось: {myTotals.remaining} дн.
+                </Badge>
+                <Badge variant="secondary" className="text-base px-4 py-2">
+                  Отработано: {myTotals.completed} дн.
+                </Badge>
+              </div>
+            </CardContent>
+          </Card>
+          <MyWorkShifts 
+            shifts={myShifts}
+            expandedUsers={expandedUsers}
+            setExpandedUsers={setExpandedUsers}
             currentUserId={currentUser.id}
-            canViewAll={canManage || isFloorHead}
+            formatDate={formatDate}
           />
         </TabsContent>
       </Tabs>
 
-      <Dialog open={assignOpen} onOpenChange={setAssignOpen}>
-        <DialogContent className="max-h-[90vh] flex flex-col">
-          <DialogHeader>
-            <DialogTitle>Назначить отработки</DialogTitle>
-            <DialogDescription>Назначьте отработки пользователю или комнате</DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 overflow-y-auto">
-            <div className="space-y-2">
-              <Label>Кому назначить</Label>
-              <Select value={assignType} onValueChange={(v: any) => setAssignType(v)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="user">Одному пользователю</SelectItem>
-                  <SelectItem value="room">Всей комнате</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            {assignType === 'user' ? (
-              <div className="space-y-2">
-                <Label>Пользователь</Label>
-                <Input placeholder="Поиск пользователя..." value={userSearch} onChange={(e) => setUserSearch(e.target.value)} />
-                <Select value={userSortBy} onValueChange={(v: any) => setUserSortBy(v)}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="name">По имени</SelectItem>
-                    <SelectItem value="room">По комнате</SelectItem>
-                    <SelectItem value="group">По группе</SelectItem>
-                    <SelectItem value="position">По должности</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Select value={selectedUserId} onValueChange={setSelectedUserId}>
-                  <SelectTrigger><SelectValue placeholder="Выберите пользователя" /></SelectTrigger>
-                  <SelectContent className="max-h-[200px]">
-                    {assignableUsers.map(u => (
-                      <SelectItem key={u.id} value={u.id}>
-                        {u.name} {u.room && `(${u.room})`} {u.group && `• ${u.group}`}
-                        {u.positions && u.positions.length > 0 && ` • ${getPositionName(sortPositionsByRank(u.positions)[0])}`}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            ) : (
-              <div className="space-y-2">
-                <Label>Номер комнаты</Label>
-                <Input placeholder="Например: 305" value={selectedRoom} onChange={(e) => setSelectedRoom(e.target.value)} />
-              </div>
-            )}
-            <div className="space-y-2">
-              <Label>Количество дней</Label>
-              <Input type="number" placeholder="Например: 3" value={days} onChange={(e) => setDays(e.target.value)} min="1" />
-            </div>
-            <div className="space-y-2">
-              <Label>Причина</Label>
-              <Textarea placeholder="Опишите причину" value={reason} onChange={(e) => setReason(e.target.value)} />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setAssignOpen(false)}>Отмена</Button>
-            <Button onClick={handleAssign}>Назначить</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <AssignWorkShiftDialog
+        open={assignOpen}
+        onOpenChange={setAssignOpen}
+        assignableUsers={assignableUsers}
+        userSearch={userSearch}
+        setUserSearch={setUserSearch}
+        userSortBy={userSortBy}
+        setUserSortBy={setUserSortBy}
+        assignType={assignType}
+        setAssignType={setAssignType}
+        selectedUserId={selectedUserId}
+        setSelectedUserId={setSelectedUserId}
+        selectedRoom={selectedRoom}
+        setSelectedRoom={setSelectedRoom}
+        days={days}
+        setDays={setDays}
+        reason={reason}
+        setReason={setReason}
+        onAssign={handleAssign}
+      />
 
-      <Dialog open={completeOpen} onOpenChange={setCompleteOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Списать отработки</DialogTitle>
-            <DialogDescription>Укажите количество отработанных дней</DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label>Количество дней</Label>
-              <Input type="number" placeholder="Например: 1" value={completeDays} onChange={(e) => setCompleteDays(e.target.value)} min="1" />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setCompleteOpen(false)}>Отмена</Button>
-            <Button onClick={handleComplete}>Списать</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <CompleteWorkShiftDialog
+        open={completeOpen}
+        onOpenChange={setCompleteOpen}
+        completeDays={completeDays}
+        setCompleteDays={setCompleteDays}
+        onComplete={handleComplete}
+      />
 
-      <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Удалить отработку?</AlertDialogTitle>
-            <AlertDialogDescription>Это действие нельзя отменить.</AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Отмена</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Удалить</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <DeleteWorkShiftDialog
+        open={deleteOpen}
+        onOpenChange={setDeleteOpen}
+        onDelete={handleDelete}
+      />
     </div>
   );
 };
