@@ -24,6 +24,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import Icon from '@/components/ui/icon';
 import { useToast } from '@/hooks/use-toast';
 import { User, UserRole } from '@/types/auth';
+import { canManageRole } from '@/utils/roles';
 
 interface UserManagementDialogProps {
   user: User | null;
@@ -206,9 +207,15 @@ export const UserManagementDialog = ({
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="member">{getRoleName('member')}</SelectItem>
-                    <SelectItem value="moderator">{getRoleName('moderator')}</SelectItem>
-                    <SelectItem value="admin">{getRoleName('admin')}</SelectItem>
-                    <SelectItem value="manager">{getRoleName('manager')}</SelectItem>
+                    {currentUserRole && canManageRole(currentUserRole, 'moderator') && (
+                      <SelectItem value="moderator">{getRoleName('moderator')}</SelectItem>
+                    )}
+                    {currentUserRole && canManageRole(currentUserRole, 'admin') && (
+                      <SelectItem value="admin">{getRoleName('admin')}</SelectItem>
+                    )}
+                    {currentUserRole && canManageRole(currentUserRole, 'manager') && (
+                      <SelectItem value="manager">{getRoleName('manager')}</SelectItem>
+                    )}
                   </SelectContent>
                 </Select>
               </div>

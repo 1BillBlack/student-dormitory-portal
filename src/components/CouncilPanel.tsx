@@ -4,7 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Icon from '@/components/ui/icon';
 import { User } from '@/types/auth';
-import { getPositionName } from '@/utils/positions';
+import { getPositionName, sortPositionsByRank } from '@/utils/positions';
 import { CouncilTasksPanel } from '@/components/CouncilTasksPanel';
 
 interface CouncilPanelProps {
@@ -117,7 +117,7 @@ export const CouncilPanel = ({ users, currentUser, onTaskCreated, onTaskUpdated,
                       Должности:
                     </p>
                     <div className="flex flex-wrap gap-2">
-                      {member.positions.map(pos => (
+                      {sortPositionsByRank(member.positions).map(pos => (
                         <Badge key={pos} variant="outline" className="text-xs">
                           {getPositionName(pos)}
                         </Badge>

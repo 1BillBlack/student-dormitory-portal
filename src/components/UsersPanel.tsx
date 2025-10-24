@@ -24,7 +24,8 @@ import { User, UserPosition } from '@/types/auth';
 import { UserManagementDialog } from '@/components/UserManagementDialog';
 import { PositionsDialog } from '@/components/PositionsDialog';
 import { useToast } from '@/hooks/use-toast';
-import { getPositionName } from '@/utils/positions';
+import { getPositionName, sortPositionsByRank } from '@/utils/positions';
+import { canManageUser } from '@/utils/roles';
 
 interface UsersPanelProps {
   users: User[];
@@ -78,7 +79,15 @@ export const UsersPanel = ({ users, currentUser, onUpdateUser, onDeleteUser, onC
   const activeUsers = users.filter(u => !u.isFrozen);
   const frozenUsers = users.filter(u => u.isFrozen);
 
-  const renderUserCard = (user: User) => (
+  const canManageThisUser = (targetUser: User): boolean => {
+    if (targetUser.id === currentUser.id) return true;
+    return canManageUser(currentUser.role, targetUser.role);
+  };
+
+  const renderUserCard = (user: User) => {
+    const canManage = canManageThisUser(user);
+
+    return (
     <Card key={user.id} className={user.isFrozen ? 'opacity-60' : ''}>
       <CardHeader className="p-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -108,7 +117,7 @@ export const UsersPanel = ({ users, currentUser, onUpdateUser, onDeleteUser, onC
               </div>
               {user.positions && user.positions.length > 0 && (
                 <div className="flex flex-wrap gap-1 mt-2">
-                  {user.positions.map(pos => (
+                  {sortPositionsByRank(user.positions).map(pos => (
                     <Badge key={pos} variant="outline" className="text-xs">
                       {getPositionName(pos)}
                     </Badge>
@@ -128,29 +137,37 @@ export const UsersPanel = ({ users, currentUser, onUpdateUser, onDeleteUser, onC
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => setEditingUser(user)}>
-                  <Icon name="Pencil" size={16} className="mr-2" />
-                  {user.id === currentUser.id ? 'Редактировать профиль' : 'Редактировать'}
-                </DropdownMenuItem>
-                {user.id !== currentUser.id && (
+                {canManage ? (
                   <>
-                    <DropdownMenuItem onClick={() => setManagingPositionsUser(user)}>
-                      <Icon name="Briefcase" size={16} className="mr-2" />
-                      Управление должностями
+                    <DropdownMenuItem onClick={() => setEditingUser(user)}>
+                      <Icon name="Pencil" size={16} className="mr-2" />
+                      {user.id === currentUser.id ? 'Редактировать профиль' : 'Редактировать'}
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => handleToggleFreeze(user)}>
-                      <Icon name={user.isFrozen ? "Flame" : "Snowflake"} size={16} className="mr-2" />
-                      {user.isFrozen ? 'Разморозить' : 'Заморозить'}
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem 
-                      onClick={() => setDeletingUserId(user.id)}
-                      className="text-destructive focus:text-destructive"
-                    >
-                      <Icon name="Trash2" size={16} className="mr-2" />
-                      Удалить
-                    </DropdownMenuItem>
+                    {user.id !== currentUser.id && (
+                      <>
+                        <DropdownMenuItem onClick={() => setManagingPositionsUser(user)}>
+                          <Icon name="Briefcase" size={16} className="mr-2" />
+                          Управление должностями
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleToggleFreeze(user)}>
+                          <Icon name={user.isFrozen ? "Flame" : "Snowflake"} size={16} className="mr-2" />
+                          {user.isFrozen ? 'Разморозить' : 'Заморозить'}
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem 
+                          onClick={() => setDeletingUserId(user.id)}
+                          className="text-destructive focus:text-destructive"
+                        >
+                          <Icon name="Trash2" size={16} className="mr-2" />
+                          Удалить
+                        </DropdownMenuItem>
+                      </>
+                    )}
                   </>
+                ) : (
+                  <div className="px-2 py-1.5 text-sm text-muted-foreground">
+                    Нет прав для управления
+                  </div>
                 )}
               </DropdownMenuContent>
             </DropdownMenu>
@@ -159,6 +176,7 @@ export const UsersPanel = ({ users, currentUser, onUpdateUser, onDeleteUser, onC
       </CardHeader>
     </Card>
   );
+  };
 
   return (
     <div className="space-y-6">

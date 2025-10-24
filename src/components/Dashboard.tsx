@@ -31,7 +31,7 @@ import { ChangeRoomDialog } from '@/components/ChangeRoomDialog';
 import { NotificationsPopover } from '@/components/NotificationsPopover';
 import { useToast } from '@/hooks/use-toast';
 import { UserPosition } from '@/types/auth';
-import { getPositionName } from '@/utils/positions';
+import { getPositionName, sortPositionsByRank } from '@/utils/positions';
 import { getTodayRoomScore, getRoomScores } from '@/components/CleanlinessPanel';
 
 type TabType = 'home' | 'notifications' | 'profile' | 'duties' | 'cleanliness' | 'admin' | 'council';
@@ -94,7 +94,7 @@ export const Dashboard = () => {
   const canViewLogs = 
     ['manager', 'admin', 'moderator'].includes(user?.role || '') ||
     user?.positions?.some(p => 
-      ['council_president', 'council_vice_president', 'council_secretary'].includes(p)
+      ['chairman', 'vice_chairman', 'secretary'].includes(p)
     );
   
   const userFloor = isFloorManager && !canManageUsers
@@ -397,7 +397,7 @@ export const Dashboard = () => {
     
     // Руководство студсовета видит всё
     const isLeadership = user?.positions?.some(p => 
-      ['council_president', 'council_vice_president', 'council_secretary'].includes(p)
+      ['chairman', 'vice_chairman', 'secretary'].includes(p)
     );
     if (isLeadership) return true;
     
@@ -675,7 +675,7 @@ export const Dashboard = () => {
                         <>
                           <span className="text-muted-foreground">Должности:</span>
                           <div className="flex flex-wrap gap-2">
-                            {user.positions.map((position) => (
+                            {sortPositionsByRank(user.positions).map((position) => (
                               <Badge key={position} variant="secondary">
                                 {getPositionName(position)}
                               </Badge>
