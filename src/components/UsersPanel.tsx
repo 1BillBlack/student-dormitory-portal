@@ -4,16 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
+
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -41,7 +32,6 @@ interface UsersPanelProps {
 export const UsersPanel = ({ users, currentUser, onUpdateUser, onDeleteUser, onCreateUser, onUpdatePositions }: UsersPanelProps) => {
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [creatingUser, setCreatingUser] = useState(false);
-  const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
   const [managingPositionsUser, setManagingPositionsUser] = useState<User | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterRole, setFilterRole] = useState<string>('all');
@@ -74,12 +64,7 @@ export const UsersPanel = ({ users, currentUser, onUpdateUser, onDeleteUser, onC
     });
   };
 
-  const handleDelete = () => {
-    if (deletingUserId) {
-      onDeleteUser(deletingUserId);
-      setDeletingUserId(null);
-    }
-  };
+
 
   const filteredUsers = users.filter(user => {
     const matchesSearch = 
@@ -175,7 +160,7 @@ export const UsersPanel = ({ users, currentUser, onUpdateUser, onDeleteUser, onC
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem 
-                          onClick={() => setDeletingUserId(user.id)}
+                          onClick={() => onDeleteUser(user.id)}
                           className="text-destructive focus:text-destructive"
                         >
                           <Icon name="Trash2" size={16} className="mr-2" />
@@ -299,21 +284,6 @@ export const UsersPanel = ({ users, currentUser, onUpdateUser, onDeleteUser, onC
           setManagingPositionsUser(null);
         }}
       />
-
-      <AlertDialog open={!!deletingUserId} onOpenChange={(open) => !open && setDeletingUserId(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Удалить пользователя?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Это действие нельзя отменить. Аккаунт пользователя будет удалён навсегда.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Отмена</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete}>Удалить</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 };
