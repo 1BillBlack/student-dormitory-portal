@@ -109,6 +109,14 @@ def handle_users(method: str, event: Dict[str, Any], conn, cur) -> Dict[str, Any
                 return {'statusCode': 400, 'body': json.dumps({'error': 'Password must be 32 characters or less'})}
             
             password_hash = hash_password(password)
+            print(f"DEBUG: email={email}, password_hash={password_hash}")
+            
+            cur.execute(
+                "SELECT id, email, name, role, room, room_group as group, positions, password_hash FROM users WHERE email = %s",
+                (email,)
+            )
+            user_with_hash = cur.fetchone()
+            print(f"DEBUG: db_hash={user_with_hash['password_hash'] if user_with_hash else 'USER_NOT_FOUND'}")
             
             cur.execute(
                 "SELECT id, email, name, role, room, room_group as group, positions FROM users WHERE email = %s AND password_hash = %s",
