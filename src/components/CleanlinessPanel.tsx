@@ -70,6 +70,7 @@ export const CleanlinessPanel = ({ currentUser: propCurrentUser, users: propUser
     getScore,
     isRoomClosed,
     isFloorClosed,
+    handleToggleRoomClosed,
     dates,
   } = useCleanlinessLogic(currentUser);
 
