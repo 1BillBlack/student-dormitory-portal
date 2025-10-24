@@ -22,7 +22,7 @@ import { canManageUser } from '@/utils/roles';
 
 interface UsersPanelProps {
   users: User[];
-  currentUser: User;
+  currentUser: User | undefined;
   onUpdateUser: (user: User) => void;
   onDeleteUser: (userId: string) => void;
   onCreateUser: (user: User) => void;
@@ -30,6 +30,13 @@ interface UsersPanelProps {
 }
 
 export const UsersPanel = ({ users, currentUser, onUpdateUser, onDeleteUser, onCreateUser, onUpdatePositions }: UsersPanelProps) => {
+  if (!currentUser) {
+    return (
+      <div className="text-center text-muted-foreground py-8">
+        Загрузка данных пользователя...
+      </div>
+    );
+  }
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [creatingUser, setCreatingUser] = useState(false);
   const [managingPositionsUser, setManagingPositionsUser] = useState<User | null>(null);

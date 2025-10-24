@@ -19,7 +19,7 @@ import { useToast } from '@/hooks/use-toast';
 
 interface FloorsPanelProps {
   users: User[];
-  currentUser: User;
+  currentUser: User | undefined;
   onApproveRoom: (userId: string) => void;
   onRejectRoom: (userId: string) => void;
   userFloor: string | null;
@@ -53,6 +53,14 @@ export const FloorsPanel = ({ users, currentUser, onApproveRoom, onRejectRoom, u
   const [confirmingUserId, setConfirmingUserId] = useState<string | null>(null);
   const [rejectingUserId, setRejectingUserId] = useState<string | null>(null);
   const { toast } = useToast();
+
+  if (!currentUser) {
+    return (
+      <div className="text-center text-muted-foreground py-8">
+        Загрузка данных пользователя...
+      </div>
+    );
+  }
 
   const pendingUsers = users.filter(u => u.pendingRoom && !u.roomConfirmed);
 

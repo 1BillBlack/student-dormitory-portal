@@ -8,7 +8,7 @@ import { LogsPanel } from '@/components/LogsPanel';
 
 interface AdminPanelProps {
   users: User[];
-  currentUser: User;
+  currentUser: User | undefined;
   onUpdateUser: (user: User) => void;
   onDeleteUser: (userId: string) => void;
   onCreateUser: (user: User) => void;
