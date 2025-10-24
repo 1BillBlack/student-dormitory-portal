@@ -1,76 +1,59 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User, UserPosition } from '@/types/auth';
-import { processAllUsers } from '@/utils/courseManagement';
-
-const USERS_STORAGE_KEY = 'dormitory_users';
-const LAST_COURSE_UPDATE_KEY = 'last_course_update';
-
-const initialUsers: User[] = [
-  { id: '1', email: 'manager@dorm.ru', name: 'Алексей Менеджеров', role: 'manager', room: '101', isFrozen: false, positions: [] },
-  { id: '2', email: 'admin@dorm.ru', name: 'Мария Администраторова', role: 'admin', room: '205', isFrozen: false, positions: [] },
-  { id: '3', email: 'moderator@dorm.ru', name: 'Иван Модераторов', role: 'moderator', room: '310', isFrozen: false, positions: ['chairman', 'cultural_sector'] },
-  { id: '4', email: 'vice@dorm.ru', name: 'Елена Заместителева', role: 'member', room: '415', isFrozen: false, positions: ['vice_chairman', 'sports_sector'] },
-  { id: '5', email: 'member@dorm.ru', name: 'Петр Участников', role: 'member', room: '520', isFrozen: false, positions: [] },
-];
+import { api } from '@/lib/api';
 
 interface UsersContextType {
   users: User[];
+  loading: boolean;
   getUserById: (id: string) => User | undefined;
   getUserByEmail: (email: string) => User | undefined;
-  updateUser: (user: User) => void;
+  updateUser: (user: User) => Promise<void>;
   deleteUser: (userId: string) => void;
   createUser: (user: User) => void;
-  updateUserPositions: (userId: string, positions: UserPosition[]) => void;
+  updateUserPositions: (userId: string, positions: UserPosition[]) => Promise<void>;
+  refreshUsers: () => Promise<void>;
 }
 
 const UsersContext = createContext<UsersContextType | undefined>(undefined);
 
 export const UsersProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [users, setUsers] = useState<User[]>(() => {
-    const saved = localStorage.getItem(USERS_STORAGE_KEY);
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch {
-        return initialUsers;
-      }
+  const [users, setUsers] = useState<User[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const loadUsers = async () => {
+    try {
+      setLoading(true);
+      const { users: loadedUsers } = await api.users.getAll();
+      setUsers(loadedUsers);
+    } catch (error) {
+      console.error('Failed to load users:', error);
+    } finally {
+      setLoading(false);
     }
-    return initialUsers;
-  });
+  };
 
   useEffect(() => {
-    const checkAndUpdateCourses = () => {
-      const lastUpdate = localStorage.getItem(LAST_COURSE_UPDATE_KEY);
-      const currentDate = new Date();
-      const currentYear = currentDate.getFullYear();
-      const isAfterAugust31 = currentDate.getMonth() > 7 || (currentDate.getMonth() === 7 && currentDate.getDate() >= 31);
-      
-      const shouldUpdate = !lastUpdate || 
-        (isAfterAugust31 && parseInt(lastUpdate) < currentYear);
-
-      if (shouldUpdate) {
-        const { updatedUsers, deletedUserIds } = processAllUsers(users);
-        
-        if (deletedUserIds.length > 0 || JSON.stringify(updatedUsers) !== JSON.stringify(users)) {
-          setUsers(updatedUsers);
-          localStorage.setItem(LAST_COURSE_UPDATE_KEY, currentYear.toString());
-        }
-      }
-    };
-
-    checkAndUpdateCourses();
+    loadUsers();
   }, []);
-
-  useEffect(() => {
-    localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(users));
-  }, [users]);
 
   const getUserById = (id: string) => users.find(u => u.id === id);
   
   const getUserByEmail = (email: string) => users.find(u => u.email === email);
 
-  const updateUser = (updatedUser: User) => {
-    setUsers(prev => prev.map(u => u.id === updatedUser.id ? updatedUser : u));
+  const updateUser = async (updatedUser: User) => {
+    try {
+      await api.users.update(updatedUser.id, {
+        name: updatedUser.name,
+        room: updatedUser.room,
+        group: updatedUser.group,
+        role: updatedUser.role,
+        positions: updatedUser.positions,
+      });
+      setUsers(prev => prev.map(u => u.id === updatedUser.id ? updatedUser : u));
+    } catch (error) {
+      console.error('Failed to update user:', error);
+      throw error;
+    }
   };
 
   const deleteUser = (userId: string) => {
@@ -81,21 +64,33 @@ export const UsersProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setUsers(prev => [...prev, newUser]);
   };
 
-  const updateUserPositions = (userId: string, positions: UserPosition[]) => {
-    setUsers(prev => prev.map(u => 
-      u.id === userId ? { ...u, positions } : u
-    ));
+  const updateUserPositions = async (userId: string, positions: UserPosition[]) => {
+    try {
+      await api.users.update(userId, { positions });
+      setUsers(prev => prev.map(u => 
+        u.id === userId ? { ...u, positions } : u
+      ));
+    } catch (error) {
+      console.error('Failed to update user positions:', error);
+      throw error;
+    }
+  };
+
+  const refreshUsers = async () => {
+    await loadUsers();
   };
 
   return (
     <UsersContext.Provider value={{
       users,
+      loading,
       getUserById,
       getUserByEmail,
       updateUser,
       deleteUser,
       createUser,
       updateUserPositions,
+      refreshUsers,
     }}>
       {children}
     </UsersContext.Provider>

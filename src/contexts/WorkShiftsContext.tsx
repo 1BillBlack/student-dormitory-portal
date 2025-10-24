@@ -1,7 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-
-const WORK_SHIFTS_STORAGE_KEY = 'dormitory_work_shifts';
-const WORK_SHIFTS_ARCHIVE_KEY = 'dormitory_work_shifts_archive';
+import { api } from '@/lib/api';
 
 export interface WorkShift {
   id: number;
@@ -22,51 +20,51 @@ export interface WorkShift {
 interface WorkShiftsContextType {
   workShifts: WorkShift[];
   archivedShifts: WorkShift[];
-  addWorkShift: (shift: Omit<WorkShift, 'id' | 'assignedAt' | 'completedDays'>) => void;
-  completeWorkShift: (id: number, days: number, completedBy: string, completedByName: string) => void;
-  deleteWorkShift: (id: number) => void;
+  loading: boolean;
+  addWorkShift: (shift: Omit<WorkShift, 'id' | 'assignedAt' | 'completedDays'>) => Promise<void>;
+  completeWorkShift: (id: number, days: number, completedBy: string, completedByName: string) => Promise<void>;
+  deleteWorkShift: (id: number) => Promise<void>;
   getUserActiveShifts: (userId: string) => WorkShift[];
   getUserArchivedShifts: (userId: string) => WorkShift[];
   getUserTotalDays: (userId: string) => { remaining: number; completed: number };
+  refreshWorkShifts: () => Promise<void>;
 }
 
 const WorkShiftsContext = createContext<WorkShiftsContextType | undefined>(undefined);
 
 export const WorkShiftsProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [workShifts, setWorkShifts] = useState<WorkShift[]>(() => {
-    const saved = localStorage.getItem(WORK_SHIFTS_STORAGE_KEY);
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch {
-        return [];
-      }
+  const [workShifts, setWorkShifts] = useState<WorkShift[]>([]);
+  const [archivedShifts, setArchivedShifts] = useState<WorkShift[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const loadWorkShifts = async () => {
+    try {
+      setLoading(true);
+      const { workShifts: loadedShifts } = await api.workShifts.getAll();
+      setWorkShifts(loadedShifts);
+    } catch (error) {
+      console.error('Failed to load work shifts:', error);
+    } finally {
+      setLoading(false);
     }
-    return [];
-  });
+  };
 
-  const [archivedShifts, setArchivedShifts] = useState<WorkShift[]>(() => {
-    const saved = localStorage.getItem(WORK_SHIFTS_ARCHIVE_KEY);
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch {
-        return [];
-      }
+  const loadArchivedShifts = async () => {
+    try {
+      const { archivedShifts: loaded } = await api.workShifts.getArchived();
+      setArchivedShifts(loaded);
+    } catch (error) {
+      console.error('Failed to load archived shifts:', error);
     }
-    return [];
-  });
+  };
 
   useEffect(() => {
-    localStorage.setItem(WORK_SHIFTS_STORAGE_KEY, JSON.stringify(workShifts));
-  }, [workShifts]);
+    loadWorkShifts();
+    loadArchivedShifts();
+  }, []);
 
   useEffect(() => {
-    localStorage.setItem(WORK_SHIFTS_ARCHIVE_KEY, JSON.stringify(archivedShifts));
-  }, [archivedShifts]);
-
-  useEffect(() => {
-    const checkAndArchiveCompleted = () => {
+    const checkAndArchiveCompleted = async () => {
       const completed = workShifts.filter(s => s.completedDays >= s.days);
       if (completed.length === 0) return;
 
@@ -87,49 +85,62 @@ export const WorkShiftsProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       });
 
       if (usersToArchive.length > 0) {
-        const now = new Date().toISOString();
-        const toArchive = workShifts.filter(s => 
+        const shiftsToArchive = workShifts.filter(s => 
           usersToArchive.includes(s.userId) && s.completedDays >= s.days
-        ).map(s => ({ ...s, archivedAt: now }));
+        );
 
-        setArchivedShifts(prev => [...toArchive, ...prev]);
-        setWorkShifts(prev => prev.filter(s => 
-          !usersToArchive.includes(s.userId) || s.completedDays < s.days
-        ));
+        for (const shift of shiftsToArchive) {
+          try {
+            await api.workShifts.archive(shift.id);
+          } catch (error) {
+            console.error('Failed to archive shift:', error);
+          }
+        }
+
+        await loadWorkShifts();
+        await loadArchivedShifts();
       }
     };
 
     checkAndArchiveCompleted();
   }, [workShifts]);
 
-  const addWorkShift = (shift: Omit<WorkShift, 'id' | 'assignedAt' | 'completedDays'>) => {
-    const newShift: WorkShift = {
-      ...shift,
-      id: Date.now(),
-      assignedAt: new Date().toISOString(),
-      completedDays: 0,
-    };
-    setWorkShifts(prev => [newShift, ...prev]);
+  const addWorkShift = async (shift: Omit<WorkShift, 'id' | 'assignedAt' | 'completedDays'>) => {
+    try {
+      await api.workShifts.create({
+        userId: shift.userId,
+        userName: shift.userName,
+        days: shift.days,
+        assignedBy: shift.assignedBy,
+        assignedByName: shift.assignedByName,
+        reason: shift.reason,
+      });
+      await loadWorkShifts();
+    } catch (error) {
+      console.error('Failed to add work shift:', error);
+      throw error;
+    }
   };
 
-  const completeWorkShift = (id: number, days: number, completedBy: string, completedByName: string) => {
-    setWorkShifts(prev => prev.map(shift => {
-      if (shift.id === id) {
-        const newCompletedDays = Math.min(shift.completedDays + days, shift.days);
-        return {
-          ...shift,
-          completedDays: newCompletedDays,
-          completedBy,
-          completedByName,
-          completedAt: new Date().toISOString(),
-        };
-      }
-      return shift;
-    }));
+  const completeWorkShift = async (id: number, days: number, completedBy: string, completedByName: string) => {
+    try {
+      await api.workShifts.complete(id, days, completedBy, completedByName);
+      await loadWorkShifts();
+    } catch (error) {
+      console.error('Failed to complete work shift:', error);
+      throw error;
+    }
   };
 
-  const deleteWorkShift = (id: number) => {
-    setWorkShifts(prev => prev.filter(shift => shift.id !== id));
+  const deleteWorkShift = async (id: number) => {
+    try {
+      await api.workShifts.archive(id);
+      await loadWorkShifts();
+      await loadArchivedShifts();
+    } catch (error) {
+      console.error('Failed to delete work shift:', error);
+      throw error;
+    }
   };
 
   const getUserActiveShifts = (userId: string) => {
@@ -153,16 +164,23 @@ export const WorkShiftsProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     return { remaining, completed };
   };
 
+  const refreshWorkShifts = async () => {
+    await loadWorkShifts();
+    await loadArchivedShifts();
+  };
+
   return (
     <WorkShiftsContext.Provider value={{
       workShifts,
       archivedShifts,
+      loading,
       addWorkShift,
       completeWorkShift,
       deleteWorkShift,
       getUserActiveShifts,
       getUserArchivedShifts,
       getUserTotalDays,
+      refreshWorkShifts,
     }}>
       {children}
     </WorkShiftsContext.Provider>

@@ -1,81 +1,109 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { api } from '@/lib/api';
 
-const NOTIFICATIONS_STORAGE_KEY = 'dormitory_notifications';
-
-export type NotificationType = 'room_request' | 'position_assigned' | 'task_assigned' | 'room_approved' | 'room_rejected';
+export type NotificationType = 'room_request' | 'position_assigned' | 'task_assigned' | 'room_approved' | 'room_rejected' | 'work_shift_assigned' | 'work_shift_completed' | 'work_shift_deleted';
 
 export interface Notification {
-  id: string;
+  id: number;
   type: NotificationType;
   title: string;
   message: string;
-  date: string;
-  read: boolean;
-  userId?: string;
+  created_at: string;
+  is_read: boolean;
+  user_id: string;
 }
 
 interface NotificationsContextType {
   notifications: Notification[];
-  addNotification: (notification: Omit<Notification, 'id' | 'date' | 'read'>) => void;
-  markAsRead: (id: string) => void;
-  markAllAsRead: () => void;
-  deleteNotification: (id: string) => void;
+  loading: boolean;
+  addNotification: (notification: { type: NotificationType; title: string; message: string; userId: string }) => Promise<void>;
+  markAsRead: (id: number) => Promise<void>;
+  markAllAsRead: () => Promise<void>;
+  deleteNotification: (id: number) => void;
   unreadCount: number;
+  refreshNotifications: (userId: string) => Promise<void>;
 }
 
 const NotificationsContext = createContext<NotificationsContextType | undefined>(undefined);
 
 export const NotificationsProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [notifications, setNotifications] = useState<Notification[]>(() => {
-    const saved = localStorage.getItem(NOTIFICATIONS_STORAGE_KEY);
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch {
-        return [];
-      }
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  const loadNotifications = async (userId: string) => {
+    if (!userId) return;
+    
+    try {
+      setLoading(true);
+      const { notifications: loaded } = await api.notifications.getAll(userId);
+      setNotifications(loaded);
+    } catch (error) {
+      console.error('Failed to load notifications:', error);
+    } finally {
+      setLoading(false);
     }
-    return [];
-  });
-
-  useEffect(() => {
-    localStorage.setItem(NOTIFICATIONS_STORAGE_KEY, JSON.stringify(notifications));
-  }, [notifications]);
-
-  const addNotification = (notification: Omit<Notification, 'id' | 'date' | 'read'>) => {
-    const newNotification: Notification = {
-      ...notification,
-      id: `notification_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      date: new Date().toISOString(),
-      read: false,
-    };
-    setNotifications(prev => [newNotification, ...prev]);
   };
 
-  const markAsRead = (id: string) => {
-    setNotifications(prev => prev.map(n => 
-      n.id === id ? { ...n, read: true } : n
-    ));
+  const addNotification = async (notification: { type: NotificationType; title: string; message: string; userId: string }) => {
+    try {
+      const { notification: created } = await api.notifications.create(
+        notification.userId,
+        notification.type,
+        notification.title,
+        notification.message
+      );
+      setNotifications(prev => [created, ...prev]);
+    } catch (error) {
+      console.error('Failed to add notification:', error);
+      throw error;
+    }
   };
 
-  const markAllAsRead = () => {
-    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+  const markAsRead = async (id: number) => {
+    try {
+      await api.notifications.markAsRead(id);
+      setNotifications(prev => prev.map(n => 
+        n.id === id ? { ...n, is_read: true } : n
+      ));
+    } catch (error) {
+      console.error('Failed to mark notification as read:', error);
+      throw error;
+    }
   };
 
-  const deleteNotification = (id: string) => {
+  const markAllAsRead = async () => {
+    try {
+      const unreadNotifications = notifications.filter(n => !n.is_read);
+      for (const notification of unreadNotifications) {
+        await api.notifications.markAsRead(notification.id);
+      }
+      setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
+    } catch (error) {
+      console.error('Failed to mark all as read:', error);
+      throw error;
+    }
+  };
+
+  const deleteNotification = (id: number) => {
     setNotifications(prev => prev.filter(n => n.id !== id));
   };
 
-  const unreadCount = notifications.filter(n => !n.read).length;
+  const unreadCount = notifications.filter(n => !n.is_read).length;
+
+  const refreshNotifications = async (userId: string) => {
+    await loadNotifications(userId);
+  };
 
   return (
     <NotificationsContext.Provider value={{
       notifications,
+      loading,
       addNotification,
       markAsRead,
       markAllAsRead,
       deleteNotification,
       unreadCount,
+      refreshNotifications,
     }}>
       {children}
     </NotificationsContext.Provider>

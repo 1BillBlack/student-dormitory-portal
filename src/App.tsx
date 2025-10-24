@@ -10,6 +10,7 @@ import { AnnouncementsProvider } from "@/contexts/AnnouncementsContext";
 import { NotificationsProvider } from "@/contexts/NotificationsContext";
 import { LogsProvider } from "@/contexts/LogsContext";
 import { WorkShiftsProvider } from "@/contexts/WorkShiftsContext";
+import { MigrationDialog } from "@/components/MigrationDialog";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 
@@ -24,6 +25,7 @@ const App = () => (
             <LogsProvider>
               <NotificationsProvider>
                 <AuthProvider>
+                  <MigrationDialog />
                   <Toaster />
                   <Sonner />
                   <BrowserRouter>

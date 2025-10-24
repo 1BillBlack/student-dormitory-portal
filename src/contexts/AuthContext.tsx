@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User, AuthState } from '@/types/auth';
-import { useUsers } from '@/contexts/UsersContext';
+import { api } from '@/lib/api';
 
 interface AuthContextType extends AuthState {
   login: (email: string, password: string, rememberMe: boolean) => Promise<void>;
@@ -9,8 +9,7 @@ interface AuthContextType extends AuthState {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const AuthProviderInner: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { getUserByEmail } = useUsers();
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [authState, setAuthState] = useState<AuthState>({
     user: null,
     isAuthenticated: false,
@@ -24,53 +23,33 @@ const AuthProviderInner: React.FC<{ children: React.ReactNode }> = ({ children }
     
     if (userToRestore) {
       const parsedUser = JSON.parse(userToRestore);
-      const currentUser = getUserByEmail(parsedUser.email);
-      
-      if (currentUser?.isFrozen) {
-        localStorage.removeItem('user');
-        localStorage.removeItem('user_expiry');
-        sessionStorage.removeItem('user');
-        setAuthState({
-          user: null,
-          isAuthenticated: false,
-        });
-        return;
-      }
       
       setAuthState({
-        user: currentUser || parsedUser,
+        user: parsedUser,
         isAuthenticated: true,
       });
     }
-  }, [getUserByEmail]);
+  }, []);
 
   const login = async (email: string, password: string, rememberMe: boolean) => {
-    const mockUser = getUserByEmail(email) || {
-      id: Date.now().toString(),
-      email,
-      name: email.split('@')[0],
-      role: 'member' as const,
-      room: '999',
-      positions: [],
-      isFrozen: false,
-    };
+    try {
+      const { user } = await api.users.login(email, password);
 
-    if (mockUser.isFrozen) {
-      throw new Error('Ваш аккаунт заморожен. Обратитесь к администратору.');
-    }
+      setAuthState({
+        user: user,
+        isAuthenticated: true,
+      });
 
-    setAuthState({
-      user: mockUser,
-      isAuthenticated: true,
-    });
-
-    if (rememberMe) {
-      const expiryDate = new Date();
-      expiryDate.setMonth(expiryDate.getMonth() + 1);
-      localStorage.setItem('user', JSON.stringify(mockUser));
-      localStorage.setItem('user_expiry', expiryDate.toISOString());
-    } else {
-      sessionStorage.setItem('user', JSON.stringify(mockUser));
+      if (rememberMe) {
+        const expiryDate = new Date();
+        expiryDate.setMonth(expiryDate.getMonth() + 1);
+        localStorage.setItem('user', JSON.stringify(user));
+        localStorage.setItem('user_expiry', expiryDate.toISOString());
+      } else {
+        sessionStorage.setItem('user', JSON.stringify(user));
+      }
+    } catch (error: any) {
+      throw new Error(error.message || 'Неверный email или пароль');
     }
   };
 
@@ -89,10 +68,6 @@ const AuthProviderInner: React.FC<{ children: React.ReactNode }> = ({ children }
       {children}
     </AuthContext.Provider>
   );
-};
-
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  return <AuthProviderInner>{children}</AuthProviderInner>;
 };
 
 export const useAuth = () => {

@@ -1,6 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-
-const LOGS_STORAGE_KEY = 'dormitory_logs';
+import { api } from '@/lib/api';
 
 export type LogAction = 
   | 'room_request_created'
@@ -23,48 +22,53 @@ export type LogAction =
 
 export interface Log {
   id: number;
-  timestamp: string;
+  created_at: string;
   action: LogAction;
-  userId: string;
-  userName: string;
+  user_id: string;
+  user_name: string;
   details: string;
-  targetUserId?: string;
-  targetUserName?: string;
+  target_user_id?: string;
+  target_user_name?: string;
 }
 
 interface LogsContextType {
   logs: Log[];
-  addLog: (log: Omit<Log, 'id' | 'timestamp'>) => void;
+  loading: boolean;
+  addLog: (log: { action: LogAction; userId: string; userName: string; details: string; targetUserId?: string; targetUserName?: string }) => Promise<void>;
   deleteLog: (id: number) => void;
   clearAllLogs: () => void;
+  refreshLogs: () => Promise<void>;
 }
 
 const LogsContext = createContext<LogsContextType | undefined>(undefined);
 
 export const LogsProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [logs, setLogs] = useState<Log[]>(() => {
-    const saved = localStorage.getItem(LOGS_STORAGE_KEY);
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch {
-        return [];
-      }
+  const [logs, setLogs] = useState<Log[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const loadLogs = async () => {
+    try {
+      setLoading(true);
+      const { logs: loaded } = await api.logs.getAll(100);
+      setLogs(loaded);
+    } catch (error) {
+      console.error('Failed to load logs:', error);
+    } finally {
+      setLoading(false);
     }
-    return [];
-  });
+  };
 
   useEffect(() => {
-    localStorage.setItem(LOGS_STORAGE_KEY, JSON.stringify(logs));
-  }, [logs]);
+    loadLogs();
+  }, []);
 
-  const addLog = (log: Omit<Log, 'id' | 'timestamp'>) => {
-    const newLog: Log = {
-      ...log,
-      id: Date.now(),
-      timestamp: new Date().toISOString(),
-    };
-    setLogs(prev => [newLog, ...prev]);
+  const addLog = async (log: { action: LogAction; userId: string; userName: string; details: string; targetUserId?: string; targetUserName?: string }) => {
+    try {
+      const { log: created } = await api.logs.create(log);
+      setLogs(prev => [created, ...prev]);
+    } catch (error) {
+      console.error('Failed to add log:', error);
+    }
   };
 
   const deleteLog = (id: number) => {
@@ -75,8 +79,19 @@ export const LogsProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setLogs([]);
   };
 
+  const refreshLogs = async () => {
+    await loadLogs();
+  };
+
   return (
-    <LogsContext.Provider value={{ logs, addLog, deleteLog, clearAllLogs }}>
+    <LogsContext.Provider value={{ 
+      logs, 
+      loading,
+      addLog, 
+      deleteLog, 
+      clearAllLogs,
+      refreshLogs 
+    }}>
       {children}
     </LogsContext.Provider>
   );

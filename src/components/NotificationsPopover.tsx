@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Popover,
@@ -8,6 +8,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import Icon from '@/components/ui/icon';
 import { useNotifications } from '@/contexts/NotificationsContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
 const formatDate = (dateStr: string): string => {
@@ -46,10 +47,17 @@ const getNotificationIcon = (type: string) => {
 };
 
 export const NotificationsPopover = () => {
-  const { notifications, markAsRead, markAllAsRead, deleteNotification, unreadCount } = useNotifications();
+  const { notifications, markAsRead, markAllAsRead, deleteNotification, unreadCount, refreshNotifications } = useNotifications();
+  const { user } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
 
-  const handleNotificationClick = (id: string) => {
+  useEffect(() => {
+    if (user?.id) {
+      refreshNotifications(user.id);
+    }
+  }, [user?.id]);
+
+  const handleNotificationClick = (id: number) => {
     markAsRead(id);
   };
 
@@ -105,7 +113,7 @@ export const NotificationsPopover = () => {
                   <div 
                     key={notification.id} 
                     className={`p-4 hover:bg-muted/50 transition-colors cursor-pointer ${
-                      !notification.read ? 'bg-blue-50/50 dark:bg-blue-950/20' : ''
+                      !notification.is_read ? 'bg-blue-50/50 dark:bg-blue-950/20' : ''
                     }`}
                     onClick={() => handleNotificationClick(notification.id)}
                   >
@@ -138,9 +146,9 @@ export const NotificationsPopover = () => {
                         <div className="flex items-center gap-2">
                           <Icon name="Clock" size={12} className="text-muted-foreground" />
                           <span className="text-xs text-muted-foreground">
-                            {formatDate(notification.date)}
+                            {formatDate(notification.created_at)}
                           </span>
-                          {!notification.read && (
+                          {!notification.is_read && (
                             <Badge variant="secondary" className="h-4 px-1.5 text-[10px]">
                               Новое
                             </Badge>
