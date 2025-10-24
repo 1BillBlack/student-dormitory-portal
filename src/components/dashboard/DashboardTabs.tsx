@@ -189,6 +189,7 @@ export const DashboardTabs = ({
         <TabsContent value="admin">
           <AdminPanel
             users={users}
+            currentUser={user || undefined}
             onUpdateUser={onUpdateUser}
             onDeleteUser={setDeletingUserId}
             onCreateUser={onCreateUser}
@@ -196,7 +197,6 @@ export const DashboardTabs = ({
             onApproveRoom={onApproveRoom}
             onRejectRoom={onRejectRoom}
             canManageUsers={canManageUsers}
-            isFloorManager={isFloorManager}
             userFloor={userFloor}
             canViewLogs={canViewLogs}
           />
