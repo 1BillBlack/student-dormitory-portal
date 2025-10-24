@@ -90,9 +90,9 @@ export const LogsPanel = ({ canDelete = false }: LogsPanelProps) => {
 
   const filteredLogs = logs.filter(log => {
     const matchesSearch = 
-      (log.userName || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (log.user_name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
       (log.details || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (log.targetUserName && log.targetUserName.toLowerCase().includes(searchQuery.toLowerCase()));
+      (log.target_user_name && log.target_user_name.toLowerCase().includes(searchQuery.toLowerCase()));
 
     const matchesCategory = 
       filterCategory === 'all' || 
@@ -211,18 +211,18 @@ export const LogsPanel = ({ canDelete = false }: LogsPanelProps) => {
                   <div className="flex items-start gap-2">
                     <Icon name="User" size={14} className="mt-0.5 text-muted-foreground shrink-0" />
                     <span className="break-words">
-                      <span className="font-medium">{log.userName}</span>
+                      <span className="font-medium">{log.user_name}</span>
                     </span>
                   </div>
                   <div className="flex items-start gap-2">
                     <Icon name="Info" size={14} className="mt-0.5 text-muted-foreground shrink-0" />
                     <span className="text-muted-foreground break-words">{log.details}</span>
                   </div>
-                  {log.targetUserName && (
+                  {log.target_user_name && (
                     <div className="flex items-start gap-2">
                       <Icon name="UserCheck" size={14} className="mt-0.5 text-muted-foreground shrink-0" />
                       <span className="text-muted-foreground break-words">
-                        Участник: <span className="font-medium text-foreground">{log.targetUserName}</span>
+                        Участник: <span className="font-medium text-foreground">{log.target_user_name}</span>
                       </span>
                     </div>
                   )}

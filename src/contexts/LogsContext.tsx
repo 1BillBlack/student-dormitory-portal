@@ -50,7 +50,17 @@ export const LogsProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       setLoading(true);
       const { logs: loaded } = await api.logs.getAll(100);
-      setLogs(loaded);
+      const mappedLogs = loaded.map((log: any) => ({
+        id: log.id,
+        created_at: log.created_at,
+        action: log.action,
+        user_id: log.user_id,
+        user_name: log.user_name,
+        details: log.details,
+        target_user_id: log.target_user_id,
+        target_user_name: log.target_user_name
+      }));
+      setLogs(mappedLogs);
     } catch (error) {
       console.error('Failed to load logs:', error);
     } finally {
@@ -65,7 +75,17 @@ export const LogsProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const addLog = async (log: { action: LogAction; userId: string; userName: string; details: string; targetUserId?: string; targetUserName?: string }) => {
     try {
       const { log: created } = await api.logs.create(log);
-      setLogs(prev => [created, ...prev]);
+      const mappedLog = {
+        id: created.id,
+        created_at: created.created_at,
+        action: created.action,
+        user_id: created.user_id,
+        user_name: created.user_name,
+        details: created.details,
+        target_user_id: created.target_user_id,
+        target_user_name: created.target_user_name
+      };
+      setLogs(prev => [mappedLog, ...prev]);
     } catch (error) {
       console.error('Failed to add log:', error);
     }
