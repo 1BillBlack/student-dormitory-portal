@@ -127,16 +127,24 @@ export const Dashboard = () => {
     return 'bg-red-100 text-red-800 border-red-300';
   };
 
-  const confirmDeleteUser = () => {
+  const confirmDeleteUser = async () => {
     if (!deletingUserId) return;
     
-    deleteUser(deletingUserId);
-    toast({
-      title: 'Удалено',
-      description: 'Пользователь удалён',
-    });
-    
-    setDeletingUserId(null);
+    try {
+      await deleteUser(deletingUserId);
+      toast({
+        title: 'Удалено',
+        description: 'Пользователь удалён',
+      });
+    } catch (error) {
+      toast({
+        title: 'Ошибка',
+        description: 'Не удалось удалить пользователя',
+        variant: 'destructive',
+      });
+    } finally {
+      setDeletingUserId(null);
+    }
   };
 
   const handleUpdateUser = (updatedUser: any) => {

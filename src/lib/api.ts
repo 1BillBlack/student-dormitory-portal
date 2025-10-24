@@ -52,6 +52,8 @@ export const api = {
       apiRequest<{ user: any }>('users', 'POST', { action: 'register', email, password, name, room, group }),
     update: (userId: string, updates: any) =>
       apiRequest<{ success: boolean }>('users', 'PUT', { userId, ...updates }),
+    delete: (userId: string) =>
+      apiRequest<{ success: boolean }>('users', 'DELETE', undefined, { userId }),
   },
 
   workShifts: {

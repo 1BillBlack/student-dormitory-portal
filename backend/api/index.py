@@ -98,7 +98,7 @@ def handle_users(method: str, event: Dict[str, Any], conn, cur) -> Dict[str, Any
             
             query = f"""INSERT INTO users (id, email, password_hash, name, role, room, room_group, positions) 
                        VALUES ({escape_sql_string(user_id)}, {escape_sql_string(email)}, {escape_sql_string(password_hash)}, 
-                               {escape_sql_string(name)}, 'resident', {escape_sql_string(room)}, {escape_sql_string(group)}, '[]'::jsonb) 
+                               {escape_sql_string(name)}, 'member', {escape_sql_string(room)}, {escape_sql_string(group)}, '[]'::jsonb) 
                        RETURNING id, email, name, role, room, room_group as group, positions"""
             cur.execute(query)
             user = cur.fetchone()

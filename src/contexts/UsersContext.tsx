@@ -8,7 +8,7 @@ interface UsersContextType {
   getUserById: (id: string) => User | undefined;
   getUserByEmail: (email: string) => User | undefined;
   updateUser: (user: User) => Promise<void>;
-  deleteUser: (userId: string) => void;
+  deleteUser: (userId: string) => Promise<void>;
   createUser: (user: User) => void;
   updateUserPositions: (userId: string, positions: UserPosition[]) => Promise<void>;
   refreshUsers: () => Promise<void>;
@@ -56,8 +56,14 @@ export const UsersProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   };
 
-  const deleteUser = (userId: string) => {
-    setUsers(prev => prev.filter(u => u.id !== userId));
+  const deleteUser = async (userId: string) => {
+    try {
+      await api.users.delete(userId);
+      setUsers(prev => prev.filter(u => u.id !== userId));
+    } catch (error) {
+      console.error('Failed to delete user:', error);
+      throw error;
+    }
   };
 
   const createUser = (newUser: User) => {
