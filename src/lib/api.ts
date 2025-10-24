@@ -27,6 +27,16 @@ async function apiRequest<T>(
 
   try {
     const response = await fetch(url, options);
+    
+    // Проверяем content-type перед парсингом
+    const contentType = response.headers.get('content-type');
+    
+    // Если получили HTML вместо JSON (402, 404, etc)
+    if (!contentType || !contentType.includes('application/json')) {
+      console.warn('API недоступен (возможно, закончился премиум). Используйте локальное хранилище или внешний API.');
+      throw new Error('API недоступен. Разместите backend на своём хостинге.');
+    }
+    
     const data = await response.json();
 
     if (!response.ok) {
