@@ -26,6 +26,7 @@ import { CouncilPanel } from '@/components/CouncilPanel';
 import { CleanlinessPanel } from '@/components/CleanlinessPanel';
 import { UserManagementDialog } from '@/components/UserManagementDialog';
 import { ChangeRoomDialog } from '@/components/ChangeRoomDialog';
+import { NotificationsPopover } from '@/components/NotificationsPopover';
 import { useToast } from '@/hooks/use-toast';
 import { UserPosition } from '@/types/auth';
 import { getPositionName } from '@/utils/positions';
@@ -88,9 +89,10 @@ export const Dashboard = () => {
   const pendingRoomsCount = userFloor
     ? users.filter(u => {
         if (!u.pendingRoom || u.roomConfirmed) return false;
-        const roomNumber = parseInt(u.pendingRoom);
-        const floor = Math.floor(roomNumber / 100);
-        return floor.toString() === userFloor;
+        const firstChar = u.pendingRoom.charAt(0);
+        const floor = parseInt(firstChar);
+        const userFloorNum = parseInt(userFloor.split('_')[0]);
+        return !isNaN(floor) && floor === userFloorNum;
       }).length
     : users.filter(u => u.pendingRoom && !u.roomConfirmed).length;
 
@@ -249,6 +251,7 @@ export const Dashboard = () => {
               <p className="text-sm font-medium">{user?.name}</p>
               <p className="text-xs text-muted-foreground">{getRoleName(user?.role || '')}</p>
             </div>
+            <NotificationsPopover />
             <Button variant="ghost" size="icon" onClick={logout} className="shrink-0">
               <Icon name="LogOut" size={18} className="sm:hidden" />
               <Icon name="LogOut" size={20} className="hidden sm:block" />

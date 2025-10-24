@@ -58,14 +58,15 @@ export const FloorsPanel = ({ users, currentUser, onApproveRoom, onRejectRoom, u
 
   const groupByFloor = () => {
     const floors: Record<number, User[]> = { 2: [], 3: [], 4: [], 5: [] };
+    const floorNum = userFloor ? parseInt(userFloor.split('_')[0]) : null;
     
     pendingUsers.forEach(user => {
       if (!user.pendingRoom) return;
       
       const floor = getFloorFromRoom(user.pendingRoom);
       if (floor && floors[floor]) {
-        if (userFloor) {
-          if (floor.toString() === userFloor) {
+        if (floorNum !== null) {
+          if (floor === floorNum) {
             floors[floor].push(user);
           }
         } else {
@@ -78,7 +79,7 @@ export const FloorsPanel = ({ users, currentUser, onApproveRoom, onRejectRoom, u
   };
 
   const floorGroups = groupByFloor();
-  const visibleFloors = userFloor ? [parseInt(userFloor)] : [2, 3, 4, 5];
+  const visibleFloors = userFloor ? [parseInt(userFloor.split('_')[0])] : [2, 3, 4, 5];
 
   const canApprove = (floor: number): boolean => {
     return canApproveForFloor(currentUser, floor);
@@ -177,6 +178,7 @@ export const FloorsPanel = ({ users, currentUser, onApproveRoom, onRejectRoom, u
   };
 
   const totalPendingForUser = Object.values(floorGroups).flat().length;
+  const floorNumber = userFloor ? userFloor.split('_')[0] : null;
   
   if (totalPendingForUser === 0) {
     return (
@@ -184,8 +186,8 @@ export const FloorsPanel = ({ users, currentUser, onApproveRoom, onRejectRoom, u
         <Icon name="Check" size={48} className="mx-auto mb-4 text-muted-foreground opacity-50" />
         <h3 className="text-lg font-semibold mb-2">Нет заявок на проверку</h3>
         <p className="text-sm text-muted-foreground">
-          {userFloor 
-            ? `Все заявки для ${userFloor} этажа обработаны` 
+          {floorNumber 
+            ? `Все заявки для ${floorNumber} этажа обработаны` 
             : 'Все заявки на смену комнаты обработаны'}
         </p>
       </div>
@@ -197,7 +199,7 @@ export const FloorsPanel = ({ users, currentUser, onApproveRoom, onRejectRoom, u
       <div>
         <h3 className="text-lg font-semibold mb-1">Проверка комнат</h3>
         <p className="text-sm text-muted-foreground">
-          Заявки на подтверждение комнат {userFloor ? `(${userFloor} этаж)` : 'по этажам'} ({totalPendingForUser})
+          Заявки на подтверждение комнат {floorNumber ? `(${floorNumber} этаж)` : 'по этажам'} ({totalPendingForUser})
         </p>
       </div>
 
