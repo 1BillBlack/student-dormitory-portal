@@ -30,6 +30,13 @@ async function apiRequest<T>(
   const data = await response.json();
 
   if (!response.ok) {
+    console.error('API Error:', {
+      url,
+      status: response.status,
+      statusText: response.statusText,
+      data,
+      requestBody: body
+    });
     throw new Error(data.error || 'API request failed');
   }
 
@@ -49,13 +56,13 @@ export const api = {
 
   workShifts: {
     getAll: (userId?: string) =>
-      apiRequest<{ workShifts: any[] }>('workShifts', 'GET', undefined, userId ? { userId } : undefined),
+      apiRequest<{ workShifts: any[] }>('work-shifts', 'GET', undefined, userId ? { userId } : undefined),
     getArchived: () =>
-      apiRequest<{ archivedShifts: any[] }>('workShifts', 'GET', undefined, { archived: 'true' }),
+      apiRequest<{ archivedShifts: any[] }>('work-shifts', 'GET', undefined, { archived: 'true' }),
     create: (data: any) =>
-      apiRequest<{ workShift: any }>('workShifts', 'POST', data),
+      apiRequest<{ workShift: any }>('work-shifts', 'POST', data),
     complete: (shiftId: number, daysToComplete: number, completedBy: string, completedByName: string) =>
-      apiRequest<{ workShift: any }>('workShifts', 'PUT', {
+      apiRequest<{ workShift: any }>('work-shifts', 'PUT', {
         shiftId,
         action: 'complete',
         daysToComplete,
@@ -63,7 +70,7 @@ export const api = {
         completedByName,
       }),
     archive: (shiftId: number) =>
-      apiRequest<{ success: boolean }>('workShifts', 'PUT', { shiftId, action: 'archive' }),
+      apiRequest<{ success: boolean }>('work-shifts', 'PUT', { shiftId, action: 'archive' }),
   },
 
   notifications: {
