@@ -1,6 +1,6 @@
 # Деплой портала общежития на Reg.ru
 
-Пошаговая инструкция по размещению проекта на хостинге Reg.ru с базой данных PostgreSQL.
+Пошаговая инструкция по размещению проекта на хостинге Reg.ru с базой данных PostgreSQL или MySQL.
 
 ---
 
@@ -8,8 +8,10 @@
 
 - ✅ Аккаунт на [reg.ru](https://www.reg.ru/)
 - ✅ Хостинг с поддержкой Python (тариф "Hosting Linux" или VPS)
-- ✅ База данных PostgreSQL (можно создать в панели Reg.ru или использовать внешнюю)
+- ✅ База данных PostgreSQL **или MySQL** (можно создать в панели Reg.ru или использовать внешнюю)
 - ✅ Исходный код проекта (скачайте через GitHub или билд)
+
+> **💡 Важно:** Если на вашем хостинге доступна только MySQL, используйте файлы `app_mysql.py`, `requirements_mysql.txt` и `schema_mysql.sql` вместо PostgreSQL-версий.
 
 ---
 
@@ -38,9 +40,16 @@
 
 ---
 
-## Шаг 2: Создание базы данных PostgreSQL
+## Шаг 2: Создание базы данных
 
-### Вариант А: База данных на Reg.ru (проще)
+### ⚠️ ВЫБОР БАЗЫ ДАННЫХ
+
+**Если на хостинге доступна PostgreSQL** → используйте Вариант А или Б  
+**Если доступна только MySQL** → переходите к [Варианту В: MySQL](#вариант-в-mysql-на-regru)
+
+---
+
+### Вариант А: PostgreSQL на Reg.ru (проще)
 
 1. Войдите в **Личный кабинет Reg.ru**
 2. Перейдите в раздел **"Базы данных"**
@@ -142,6 +151,116 @@ CREATE INDEX idx_duty_schedule_user_id ON duty_schedule(user_id);
 
 ---
 
+### Вариант В: MySQL на Reg.ru
+
+Если на вашем хостинге доступна только MySQL, следуйте этим инструкциям:
+
+#### 2.1 Создайте MySQL базу данных
+
+1. Войдите в **Личный кабинет Reg.ru**
+2. Перейдите в раздел **"Базы данных"**
+3. Нажмите **"Создать базу данных"**
+4. Выберите тип: **MySQL**
+5. Заполните данные:
+   - **Имя БД**: `dormitory_portal`
+   - **Пользователь**: создайте нового пользователя
+   - **Пароль**: придумайте надёжный пароль (сохраните!)
+6. Нажмите **"Создать"**
+7. Запишите данные для подключения:
+   - **Host**: обычно `localhost` или IP хостинга
+   - **Port**: `3306` (по умолчанию)
+   - **Database**: `dormitory_portal`
+   - **User**: ваш логин
+   - **Password**: ваш пароль
+
+#### 2.2 Создайте таблицы в MySQL
+
+1. В панели Reg.ru перейдите в **phpMyAdmin**
+2. Выберите вашу базу данных `dormitory_portal`
+3. Перейдите на вкладку **SQL**
+4. Скопируйте и выполните содержимое файла **`schema_mysql.sql`** из проекта
+
+Или выполните этот SQL-скрипт:
+
+```sql
+-- Таблица пользователей
+CREATE TABLE IF NOT EXISTS users (
+    id VARCHAR(255) PRIMARY KEY,
+    email VARCHAR(255) UNIQUE NOT NULL,
+    password_hash VARCHAR(255) NOT NULL,
+    name VARCHAR(255) NOT NULL,
+    role VARCHAR(50) NOT NULL DEFAULT 'member',
+    room VARCHAR(50),
+    room_group VARCHAR(50),
+    positions JSON,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_users_email (email)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Таблица объявлений
+CREATE TABLE IF NOT EXISTS announcements (
+    id VARCHAR(255) PRIMARY KEY,
+    title VARCHAR(500) NOT NULL,
+    content TEXT NOT NULL,
+    author_id VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_announcements_created_at (created_at DESC),
+    FOREIGN KEY (author_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Таблица задач
+CREATE TABLE IF NOT EXISTS tasks (
+    id VARCHAR(255) PRIMARY KEY,
+    title VARCHAR(500) NOT NULL,
+    description TEXT,
+    status VARCHAR(50) NOT NULL DEFAULT 'pending',
+    priority VARCHAR(50) NOT NULL DEFAULT 'medium',
+    assigned_to VARCHAR(255),
+    due_date DATETIME,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_tasks_status (status),
+    INDEX idx_tasks_assigned_to (assigned_to),
+    FOREIGN KEY (assigned_to) REFERENCES users(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Таблица дежурств
+CREATE TABLE IF NOT EXISTS duty_schedule (
+    id VARCHAR(255) PRIMARY KEY,
+    user_id VARCHAR(255) NOT NULL,
+    date DATE NOT NULL,
+    zone VARCHAR(100) NOT NULL,
+    status VARCHAR(50) NOT NULL DEFAULT 'pending',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_duty_schedule_date (date),
+    INDEX idx_duty_schedule_user_id (user_id),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+```
+
+5. Нажмите **"Выполнить"**
+6. Проверьте что все таблицы созданы во вкладке **"Структура"**
+
+#### 2.3 Важные файлы для MySQL
+
+Если вы используете MySQL, вам нужны эти файлы:
+
+- ✅ **`app_mysql.py`** вместо `app.py` (основной backend)
+- ✅ **`requirements_mysql.txt`** вместо `requirements.txt` (зависимости)
+- ✅ **`schema_mysql.sql`** (схема базы данных)
+
+Переименуйте файлы перед загрузкой на хостинг:
+```bash
+# Переименуйте файлы для MySQL
+mv app_mysql.py app.py
+mv requirements_mysql.txt requirements.txt
+```
+
+Или просто используйте `app_mysql.py` напрямую в конфигурации хостинга.
+
+---
+
 ## Шаг 3: Загрузка файлов на хостинг
 
 ### 3.1 Скачайте проект
@@ -177,6 +296,7 @@ project/
 
 Скопируйте `.env.example` в `.env` и заполните:
 
+**Для PostgreSQL:**
 ```env
 # Database Configuration
 DATABASE_URL=postgresql://username:password@hostname:5432/dormitory_portal
@@ -186,7 +306,21 @@ FLASK_ENV=production
 SECRET_KEY=ваш_случайный_секретный_ключ_min_32_символа
 ```
 
-**⚠️ ВАЖНО**: Замените `DATABASE_URL` на строку подключения из Шага 2!
+**Для MySQL:**
+```env
+# MySQL Database Configuration
+MYSQL_HOST=localhost
+MYSQL_PORT=3306
+MYSQL_USER=ваш_логин_mysql
+MYSQL_PASSWORD=ваш_пароль_mysql
+MYSQL_DATABASE=dormitory_portal
+
+# Flask Configuration
+FLASK_ENV=production
+SECRET_KEY=ваш_случайный_секретный_ключ_min_32_символа
+```
+
+**⚠️ ВАЖНО**: Замените данные подключения на ваши из Шага 2!
 
 Для генерации `SECRET_KEY` используйте:
 ```python
