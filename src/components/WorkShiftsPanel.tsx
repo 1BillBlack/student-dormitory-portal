@@ -19,7 +19,7 @@ import { DeleteWorkShiftDialog } from '@/components/WorkShifts/DeleteWorkShiftDi
 import { WorkShiftsFilters } from '@/components/WorkShifts/WorkShiftsFilters';
 
 interface WorkShiftsPanelProps {
-  currentUser: User;
+  currentUser?: User;
 }
 
 const formatDate = (dateStr: string) => {
@@ -27,12 +27,25 @@ const formatDate = (dateStr: string) => {
   return `${String(d.getDate()).padStart(2, '0')}.${String(d.getMonth() + 1).padStart(2, '0')}.${d.getFullYear()}`;
 };
 
-export const WorkShiftsPanel = ({ currentUser }: WorkShiftsPanelProps) => {
+export const WorkShiftsPanel = ({ currentUser: propCurrentUser }: WorkShiftsPanelProps) => {
   const { workShifts, addWorkShift, completeWorkShift, deleteWorkShift, getUserTotalDays } = useWorkShifts();
   const { users } = useUsers();
   const { addNotification } = useNotifications();
   const { addLog } = useLogs();
   const { toast } = useToast();
+  
+  const currentUser = propCurrentUser;
+  
+  if (!currentUser) {
+    return (
+      <Card>
+        <CardContent className="py-12 text-center text-muted-foreground">
+          <Icon name="AlertCircle" size={48} className="mx-auto mb-4 opacity-20" />
+          <p>Необходима авторизация</p>
+        </CardContent>
+      </Card>
+    );
+  }
 
   const [assignOpen, setAssignOpen] = useState(false);
   const [completeOpen, setCompleteOpen] = useState(false);

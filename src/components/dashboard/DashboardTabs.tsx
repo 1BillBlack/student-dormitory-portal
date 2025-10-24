@@ -176,7 +176,7 @@ export const DashboardTabs = ({
       )}
 
       <TabsContent value="workshifts">
-        <WorkShiftsPanel />
+        <WorkShiftsPanel currentUser={user || undefined} />
       </TabsContent>
 
       {hasCouncilAccess && user && (
