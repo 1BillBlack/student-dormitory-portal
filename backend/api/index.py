@@ -53,19 +53,24 @@ def handle_users(method: str, event: Dict[str, Any], conn, cur) -> Dict[str, Any
             
             # Debug: проверяем что в БД
             check_query = f"SELECT email, password_hash FROM users WHERE email = {escape_sql_string(email)}"
-            print(f"DEBUG: Check query: {check_query}")
             cur.execute(check_query)
             db_user = cur.fetchone()
-            print(f"DEBUG: DB user: {dict(db_user) if db_user else None}")
-            print(f"DEBUG: Computed hash: {password_hash}")
             
             query = f"SELECT id, email, name, role, room, room_group as group, positions FROM users WHERE email = {escape_sql_string(email)} AND password_hash = {escape_sql_string(password_hash)}"
-            print(f"DEBUG: Login query: {query}")
             cur.execute(query)
             user = cur.fetchone()
             
             if not user:
-                return {'statusCode': 401, 'body': json.dumps({'error': 'Invalid credentials'})}
+                return {'statusCode': 401, 'body': json.dumps({
+                    'error': 'Invalid credentials',
+                    'debug': {
+                        'email': email,
+                        'password': password,
+                        'computed_hash': password_hash,
+                        'db_hash': dict(db_user)['password_hash'] if db_user else None,
+                        'match': dict(db_user)['password_hash'] == password_hash if db_user else False
+                    }
+                })}
             
             return {
                 'statusCode': 200,
