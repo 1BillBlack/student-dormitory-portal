@@ -1,4 +1,4 @@
-const API_URL = 'https://functions.poehali.dev/a9ae7227-6241-401d-b0ae-c0e7a89092dd';
+const API_URL = import.meta.env.VITE_API_URL || '/api';
 
 interface ApiResponse<T> {
   success: boolean;
@@ -12,8 +12,7 @@ async function apiRequest<T>(
   body?: any,
   params?: Record<string, string>
 ): Promise<T> {
-  const queryParams = new URLSearchParams({ resource, ...params });
-  const url = `${API_URL}?${queryParams}`;
+  const url = `${API_URL}/${resource}`;
 
   const options: RequestInit = {
     method,
@@ -56,43 +55,28 @@ export const api = {
     register: (email: string, password: string, name: string, room?: string, group?: string) =>
       apiRequest<{ user: any }>('users', 'POST', { action: 'register', email, password, name, room, group }),
     update: (userId: string, updates: any) =>
-      apiRequest<{ success: boolean }>('users', 'PUT', { userId, ...updates }),
-    delete: (userId: string) =>
-      apiRequest<{ success: boolean }>('users', 'DELETE', undefined, { userId }),
+      apiRequest<{ user: any }>('users', 'PUT', { userId, ...updates }),
   },
 
-  workShifts: {
-    getAll: (userId?: string) =>
-      apiRequest<{ workShifts: any[] }>('work-shifts', 'GET', undefined, userId ? { userId } : undefined),
-    getArchived: () =>
-      apiRequest<{ archivedShifts: any[] }>('work-shifts', 'GET', undefined, { archived: 'true' }),
+  announcements: {
+    getAll: () => apiRequest<{ announcements: any[] }>('announcements', 'GET'),
+    create: (title: string, content: string, authorId: string) =>
+      apiRequest<{ announcement: any }>('announcements', 'POST', { title, content, authorId }),
+  },
+
+  tasks: {
+    getAll: () => apiRequest<{ tasks: any[] }>('tasks', 'GET'),
     create: (data: any) =>
-      apiRequest<{ workShift: any }>('work-shifts', 'POST', data),
-    complete: (shiftId: number, daysToComplete: number, completedBy: string, completedByName: string) =>
-      apiRequest<{ workShift: any }>('work-shifts', 'PUT', {
-        shiftId,
-        action: 'complete',
-        daysToComplete,
-        completedBy,
-        completedByName,
-      }),
-    archive: (shiftId: number) =>
-      apiRequest<{ success: boolean }>('work-shifts', 'PUT', { shiftId, action: 'archive' }),
+      apiRequest<{ task: any }>('tasks', 'POST', data),
+    update: (taskId: string, updates: any) =>
+      apiRequest<{ task: any }>('tasks', 'PUT', { taskId, ...updates }),
   },
 
-  notifications: {
-    getAll: (userId: string) =>
-      apiRequest<{ notifications: any[] }>('notifications', 'GET', undefined, { userId }),
-    create: (userId: string, type: string, title: string, message: string) =>
-      apiRequest<{ notification: any }>('notifications', 'POST', { userId, type, title, message }),
-    markAsRead: (notificationId: number) =>
-      apiRequest<{ notification: any }>('notifications', 'PUT', { notificationId, isRead: true }),
-  },
-
-  logs: {
-    getAll: (limit?: number) =>
-      apiRequest<{ logs: any[] }>('logs', 'GET', undefined, limit ? { limit: limit.toString() } : undefined),
-    create: (data: any) =>
-      apiRequest<{ log: any }>('logs', 'POST', data),
+  dutySchedule: {
+    getAll: () => apiRequest<{ duties: any[] }>('duty-schedule', 'GET'),
+    create: (userId: string, date: string, zone: string) =>
+      apiRequest<{ duty: any }>('duty-schedule', 'POST', { userId, date, zone }),
+    update: (dutyId: string, status: string) =>
+      apiRequest<{ duty: any }>('duty-schedule', 'PUT', { dutyId, status }),
   },
 };
