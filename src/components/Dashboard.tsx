@@ -19,6 +19,7 @@ import Icon from '@/components/ui/icon';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUsers } from '@/contexts/UsersContext';
 import { useAnnouncements } from '@/contexts/AnnouncementsContext';
+import { useNotifications } from '@/contexts/NotificationsContext';
 import { CreateAnnouncementDialog } from '@/components/CreateAnnouncementDialog';
 import { EditAnnouncementDialog } from '@/components/EditAnnouncementDialog';
 import { AdminPanel } from '@/components/AdminPanel';
@@ -65,6 +66,7 @@ export const Dashboard = () => {
   const { user, logout } = useAuth();
   const { users, updateUser, deleteUser, createUser, updateUserPositions } = useUsers();
   const { announcements, addAnnouncement, updateAnnouncement, deleteAnnouncement } = useAnnouncements();
+  const { addNotification } = useNotifications();
   const { toast } = useToast();
 
   useEffect(() => {
@@ -124,11 +126,25 @@ export const Dashboard = () => {
   };
 
   const handleUpdatePositions = (userId: string, positions: UserPosition[]) => {
+    const targetUser = users.find(u => u.id === userId);
+    const oldPositions = targetUser?.positions || [];
+    const newPositions = positions.filter(p => !oldPositions.includes(p));
+    
     updateUserPositions(userId, positions);
     toast({
       title: 'Успешно!',
       description: 'Должности обновлены',
     });
+    
+    if (newPositions.length > 0 && targetUser) {
+      const positionNames = newPositions.map(p => getPositionName(p)).join(', ');
+      addNotification({
+        type: 'position_assigned',
+        title: 'Новая должность',
+        message: `Вам назначена новая должность: ${positionNames}`,
+        userId: targetUser.id,
+      });
+    }
   };
 
   const handleChangeRoom = (newRoom: string) => {
@@ -158,11 +174,13 @@ export const Dashboard = () => {
         ? `${user.name} запросил смену комнаты с ${user.room} на ${newRoom}`
         : `Новый участник ${user.name} запросил комнату ${newRoom}`;
       
-      addAnnouncement({
-        title: 'Новая заявка на комнату',
-        content: notificationText,
-        priority: 'high',
-        date: new Date().toISOString().split('T')[0],
+      floorHeads.forEach(floorHead => {
+        addNotification({
+          type: 'room_request',
+          title: 'Новая заявка на комнату',
+          message: notificationText,
+          userId: floorHead.id,
+        });
       });
     }
   };
@@ -179,11 +197,20 @@ export const Dashboard = () => {
     };
     
     updateUser(updatedUser);
+    
+    addNotification({
+      type: 'room_approved',
+      title: 'Комната подтверждена',
+      message: `Ваша заявка на комнату ${userToUpdate.pendingRoom} одобрена`,
+      userId: userToUpdate.id,
+    });
   };
 
   const handleRejectRoom = (userId: string) => {
     const userToUpdate = users.find(u => u.id === userId);
     if (!userToUpdate) return;
+    
+    const rejectedRoom = userToUpdate.pendingRoom;
     
     const updatedUser = {
       ...userToUpdate,
@@ -192,6 +219,13 @@ export const Dashboard = () => {
     };
     
     updateUser(updatedUser);
+    
+    addNotification({
+      type: 'room_rejected',
+      title: 'Заявка отклонена',
+      message: `Ваша заявка на комнату ${rejectedRoom} была отклонена`,
+      userId: userToUpdate.id,
+    });
   };
 
   const handleAddAnnouncement = (announcement: { title: string; content: string; priority: string; date: string }) => {
