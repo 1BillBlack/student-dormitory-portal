@@ -26,7 +26,7 @@ export interface ClosedRooms {
 }
 
 export interface ClosedFloors {
-  [date: string]: number[];
+  [floor: string]: boolean;
 }
 
 export interface CleanlinessSettings {
@@ -35,6 +35,7 @@ export interface CleanlinessSettings {
   closedRooms: ClosedRooms;
   closedFloors: ClosedFloors;
   defaultNonWorkingDays: number[];
+  generalCleaningDay: number;
 }
 
 export type ViewMode = 'week' | 'month';

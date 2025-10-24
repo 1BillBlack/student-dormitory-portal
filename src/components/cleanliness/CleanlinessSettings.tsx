@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import Icon from '@/components/ui/icon';
 import { CleanlinessSettings as Settings, ViewMode } from './types';
 import { getDefaultRooms } from './utils';
@@ -98,22 +99,10 @@ export const CleanlinessSettings = ({
     setLocalSettings(newSettings);
   };
 
-  const handleToggleFloorClosed = (date: string, floor: number) => {
+  const handleToggleFloorClosed = (floor: number) => {
     const newSettings = { ...localSettings };
-    if (!newSettings.closedFloors[date]) {
-      newSettings.closedFloors[date] = [];
-    }
-    
-    const index = newSettings.closedFloors[date].indexOf(floor);
-    if (index > -1) {
-      newSettings.closedFloors[date] = newSettings.closedFloors[date].filter(f => f !== floor);
-      if (newSettings.closedFloors[date].length === 0) {
-        delete newSettings.closedFloors[date];
-      }
-    } else {
-      newSettings.closedFloors[date].push(floor);
-    }
-    
+    const floorKey = floor.toString();
+    newSettings.closedFloors[floorKey] = !localSettings.closedFloors[floorKey];
     setLocalSettings(newSettings);
   };
 
@@ -136,8 +125,8 @@ export const CleanlinessSettings = ({
     return localSettings.closedRooms[date]?.includes(room) || false;
   };
 
-  const isFloorClosed = (date: string, floor: number): boolean => {
-    return localSettings.closedFloors[date]?.includes(floor) || false;
+  const isFloorClosed = (floor: number): boolean => {
+    return localSettings.closedFloors[floor.toString()] || false;
   };
 
   return (
@@ -191,6 +180,34 @@ export const CleanlinessSettings = ({
             </TabsContent>
 
             <TabsContent value="days" className="space-y-4">
+              <div className="mb-4 p-4 border rounded">
+                <Label className="text-sm font-medium mb-2 block">День генеральной уборки</Label>
+                <Select
+                  value={localSettings.generalCleaningDay?.toString() || '1'}
+                  onValueChange={(value) => {
+                    const newSettings = { ...localSettings };
+                    newSettings.generalCleaningDay = parseInt(value);
+                    setLocalSettings(newSettings);
+                  }}
+                >
+                  <SelectTrigger className="w-48">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1">Понедельник</SelectItem>
+                    <SelectItem value="2">Вторник</SelectItem>
+                    <SelectItem value="3">Среда</SelectItem>
+                    <SelectItem value="4">Четверг</SelectItem>
+                    <SelectItem value="5">Пятница</SelectItem>
+                    <SelectItem value="6">Суббота</SelectItem>
+                    <SelectItem value="7">Воскресенье</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground mt-2">
+                  Если день закрыт, генеральная уборка автоматически перенесется на следующий рабочий день
+                </p>
+              </div>
+              
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                 {dates.map((date) => {
                   const working = isWorkingDay(date);
@@ -212,26 +229,17 @@ export const CleanlinessSettings = ({
             {canCloseFloors && (
               <TabsContent value="closed" className="space-y-4">
                 <div>
-                  <h3 className="font-medium mb-3">Закрытые этажи</h3>
-                  <div className="space-y-2">
-                    {dates.map((date) => (
-                      <div key={date} className="border rounded p-3">
-                        <div className="font-medium text-sm mb-2">
-                          {new Date(date).toLocaleDateString('ru-RU', { day: '2-digit', month: 'long' })}
-                        </div>
-                        <div className="flex gap-2">
-                          {[2, 3, 4, 5].map((floor) => (
-                            <div key={floor} className="flex items-center gap-2">
-                              <Checkbox
-                                checked={isFloorClosed(date, floor)}
-                                onCheckedChange={() => handleToggleFloorClosed(date, floor)}
-                              />
-                              <label className="text-sm cursor-pointer" onClick={() => handleToggleFloorClosed(date, floor)}>
-                                {floor} этаж
-                              </label>
-                            </div>
-                          ))}
-                        </div>
+                  <h3 className="font-medium mb-3">Постоянно закрытые этажи</h3>
+                  <div className="flex gap-4 p-4 border rounded">
+                    {[2, 3, 4, 5].map((floor) => (
+                      <div key={floor} className="flex items-center gap-2">
+                        <Checkbox
+                          checked={isFloorClosed(floor)}
+                          onCheckedChange={() => handleToggleFloorClosed(floor)}
+                        />
+                        <label className="text-sm cursor-pointer" onClick={() => handleToggleFloorClosed(floor)}>
+                          {floor} этаж
+                        </label>
                       </div>
                     ))}
                   </div>

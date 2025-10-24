@@ -3,7 +3,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Button } from '@/components/ui/button';
 import Icon from '@/components/ui/icon';
 import { CleanlinessData, CleanlinessScore, CleanlinessSettings } from './types';
-import { formatDateHeader, isWorkingDay } from './utils';
+import { formatDateHeader, isWorkingDay, getGeneralCleaningDay, calculateAverageScore } from './utils';
 
 interface CleanlinessTableProps {
   floor: number;
@@ -106,6 +106,13 @@ export const CleanlinessTable = ({
     return <span className="text-gray-400">-</span>;
   };
 
+  const generalCleaningDate = getGeneralCleaningDay(dates, settings);
+  
+  const getAverageScoreForDate = (date: string): number | null => {
+    const scores = rooms.map(room => getScore(floor, date, room));
+    return calculateAverageScore(scores);
+  };
+
   return (
     <div className="overflow-x-auto">
       <table className="w-full border-collapse">
@@ -117,16 +124,22 @@ export const CleanlinessTable = ({
             {dates.map((date) => {
               const working = isWorkingDay(date, settings);
               const floorClosed = isFloorClosed(date, floor);
+              const isGeneralCleaning = date === generalCleaningDate;
               
               return (
                 <th
                   key={date}
                   className={`border border-border p-2 min-w-[90px] text-center ${
                     !working || floorClosed ? 'bg-muted/30' : ''
+                  } ${
+                    isGeneralCleaning ? 'bg-purple-50' : ''
                   }`}
                 >
                   <div className="text-xs whitespace-pre-line leading-tight">
                     {formatDateHeader(date)}
+                    {isGeneralCleaning && (
+                      <div className="text-purple-600 font-semibold mt-1">Ген. уборка</div>
+                    )}
                   </div>
                 </th>
               );
@@ -143,12 +156,15 @@ export const CleanlinessTable = ({
                 const working = isWorkingDay(date, settings);
                 const roomClosed = isRoomClosed(date, room);
                 const floorClosed = isFloorClosed(date, floor);
+                const isGeneralCleaning = date === generalCleaningDate;
                 
                 return (
                   <td
                     key={`${room}-${date}`}
                     className={`border border-border p-2 text-center ${
                       !working || roomClosed || floorClosed ? 'bg-muted/30' : ''
+                    } ${
+                      isGeneralCleaning ? 'bg-purple-50' : ''
                     }`}
                   >
                     {getCellContent(date, room)}
@@ -157,6 +173,30 @@ export const CleanlinessTable = ({
               })}
             </tr>
           ))}
+          <tr className="bg-muted/50 font-semibold">
+            <td className="sticky left-0 z-10 bg-muted border border-border p-2 text-sm">
+              Средний балл
+            </td>
+            {dates.map((date) => {
+              const avgScore = getAverageScoreForDate(date);
+              const isGeneralCleaning = date === generalCleaningDate;
+              
+              return (
+                <td
+                  key={`avg-${date}`}
+                  className={`border border-border p-2 text-center ${
+                    isGeneralCleaning ? 'bg-purple-50' : ''
+                  }`}
+                >
+                  {avgScore !== null ? (
+                    <span className="text-sm font-semibold">{avgScore.toFixed(1)}</span>
+                  ) : (
+                    <span className="text-gray-400">-</span>
+                  )}
+                </td>
+              );
+            })}
+          </tr>
         </tbody>
       </table>
     </div>

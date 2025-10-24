@@ -153,3 +153,32 @@ export const isWorkingDay = (date: string, settings: CleanlinessSettings): boole
   dayOfWeek = dayOfWeek === 0 ? 7 : dayOfWeek;
   return !settings.defaultNonWorkingDays.includes(dayOfWeek);
 };
+
+export const getGeneralCleaningDay = (dates: string[], settings: CleanlinessSettings): string | null => {
+  const preferredDay = settings.generalCleaningDay || 1;
+  
+  for (const date of dates) {
+    let dayOfWeek = new Date(date).getDay();
+    dayOfWeek = dayOfWeek === 0 ? 7 : dayOfWeek;
+    
+    if (dayOfWeek === preferredDay && isWorkingDay(date, settings)) {
+      return date;
+    }
+  }
+  
+  for (const date of dates) {
+    if (isWorkingDay(date, settings)) {
+      return date;
+    }
+  }
+  
+  return null;
+};
+
+export const calculateAverageScore = (scores: (CleanlinessScore | undefined)[]): number | null => {
+  const validScores = scores.filter((s): s is CleanlinessScore => s !== undefined);
+  if (validScores.length === 0) return null;
+  
+  const sum = validScores.reduce((acc, s) => acc + s.score, 0);
+  return Math.round((sum / validScores.length) * 10) / 10;
+};

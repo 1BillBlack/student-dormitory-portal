@@ -27,6 +27,7 @@ export const useCleanlinessLogic = (currentUser: User) => {
     closedRooms: {},
     closedFloors: {},
     defaultNonWorkingDays: [5, 6, 7],
+    generalCleaningDay: 1,
   });
 
   const canEditAnyFloor = (): boolean => {
@@ -110,6 +111,7 @@ export const useCleanlinessLogic = (currentUser: User) => {
         closedRooms: loadedSettings.closedRooms || {},
         closedFloors: loadedSettings.closedFloors || {},
         defaultNonWorkingDays: loadedSettings.defaultNonWorkingDays || [5, 6, 7],
+        generalCleaningDay: loadedSettings.generalCleaningDay || 1,
       });
     }
   }, []);
@@ -228,7 +230,7 @@ export const useCleanlinessLogic = (currentUser: User) => {
   };
 
   const isFloorClosed = (date: string, floor: number): boolean => {
-    return settings.closedFloors[date]?.includes(floor) || false;
+    return settings.closedFloors[floor.toString()] || false;
   };
 
   const dates = viewMode === 'week' 
