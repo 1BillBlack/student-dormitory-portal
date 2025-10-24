@@ -46,6 +46,13 @@ export const CleanlinessTable = ({
     return 'bg-gray-100 text-gray-600 border-gray-300';
   };
 
+  const getAverageScoreColor = (avgScore: number): string => {
+    if (avgScore >= 4.5) return 'text-green-700 font-bold';
+    if (avgScore >= 3.5) return 'text-blue-700 font-bold';
+    if (avgScore >= 2.5) return 'text-yellow-700 font-bold';
+    return 'text-red-700 font-bold';
+  };
+
   const getCellContent = (date: string, room: string) => {
     const scoreData = getScore(floor, date, room);
     const working = isWorkingDay(date, settings);
@@ -175,7 +182,8 @@ export const CleanlinessTable = ({
               );
             })}
             <th className="border border-border p-2 min-w-[90px] text-center bg-muted/50">
-              <div className="text-xs font-semibold">Средний\nбалл</div>
+              <div className="text-xs font-semibold whitespace-pre-line">Средний
+балл</div>
             </th>
           </tr>
         </thead>
@@ -206,9 +214,9 @@ export const CleanlinessTable = ({
                     </td>
                   );
                 })}
-                <td className="border border-border p-2 text-center bg-muted/50 font-semibold">
+                <td className="border border-border p-2 text-center bg-muted/50">
                   {avgScore !== null ? (
-                    <span className="text-sm">{avgScore.toFixed(1)}</span>
+                    <span className={`text-sm ${getAverageScoreColor(avgScore)}`}>{avgScore.toFixed(1)}</span>
                   ) : (
                     <span className="text-gray-400">-</span>
                   )}
