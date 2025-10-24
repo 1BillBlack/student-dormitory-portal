@@ -20,7 +20,8 @@ def hash_password(password: str) -> str:
 def escape_sql_string(value: str) -> str:
     if value is None:
         return 'NULL'
-    return "'" + str(value).replace("'", "''") + "'"
+    escaped = str(value).replace("'", "''")
+    return f"'{escaped}'"
 
 def get_db_connection():
     conn = psycopg2.connect(DATABASE_URL)
@@ -49,7 +50,17 @@ def handle_users(method: str, event: Dict[str, Any], conn, cur) -> Dict[str, Any
                 return {'statusCode': 400, 'body': json.dumps({'error': 'Email and password required'})}
             
             password_hash = hash_password(password)
+            
+            # Debug: проверяем что в БД
+            check_query = f"SELECT email, password_hash FROM users WHERE email = {escape_sql_string(email)}"
+            print(f"DEBUG: Check query: {check_query}")
+            cur.execute(check_query)
+            db_user = cur.fetchone()
+            print(f"DEBUG: DB user: {dict(db_user) if db_user else None}")
+            print(f"DEBUG: Computed hash: {password_hash}")
+            
             query = f"SELECT id, email, name, role, room, room_group as group, positions FROM users WHERE email = {escape_sql_string(email)} AND password_hash = {escape_sql_string(password_hash)}"
+            print(f"DEBUG: Login query: {query}")
             cur.execute(query)
             user = cur.fetchone()
             
