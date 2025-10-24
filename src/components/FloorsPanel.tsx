@@ -22,6 +22,7 @@ interface FloorsPanelProps {
   currentUser: User;
   onApproveRoom: (userId: string) => void;
   onRejectRoom: (userId: string) => void;
+  userFloor: string | null;
 }
 
 const getFloorFromRoom = (room: string): number | null => {
@@ -48,7 +49,7 @@ const canApproveForFloor = (user: User, floor: number): boolean => {
   return user.positions?.includes(floorHeadPosition) || false;
 };
 
-export const FloorsPanel = ({ users, currentUser, onApproveRoom, onRejectRoom }: FloorsPanelProps) => {
+export const FloorsPanel = ({ users, currentUser, onApproveRoom, onRejectRoom, userFloor }: FloorsPanelProps) => {
   const [confirmingUserId, setConfirmingUserId] = useState<string | null>(null);
   const [rejectingUserId, setRejectingUserId] = useState<string | null>(null);
   const { toast } = useToast();
@@ -63,7 +64,13 @@ export const FloorsPanel = ({ users, currentUser, onApproveRoom, onRejectRoom }:
       
       const floor = getFloorFromRoom(user.pendingRoom);
       if (floor && floors[floor]) {
-        floors[floor].push(user);
+        if (userFloor) {
+          if (floor.toString() === userFloor) {
+            floors[floor].push(user);
+          }
+        } else {
+          floors[floor].push(user);
+        }
       }
     });
     
@@ -71,6 +78,7 @@ export const FloorsPanel = ({ users, currentUser, onApproveRoom, onRejectRoom }:
   };
 
   const floorGroups = groupByFloor();
+  const visibleFloors = userFloor ? [parseInt(userFloor)] : [2, 3, 4, 5];
 
   const canApprove = (floor: number): boolean => {
     return canApproveForFloor(currentUser, floor);
@@ -78,10 +86,11 @@ export const FloorsPanel = ({ users, currentUser, onApproveRoom, onRejectRoom }:
 
   const handleApprove = () => {
     if (confirmingUserId) {
+      const user = users.find(u => u.id === confirmingUserId);
       onApproveRoom(confirmingUserId);
       toast({
         title: 'Комната подтверждена',
-        description: 'Пользователь получил доступ к новой комнате',
+        description: `Пользователь ${user?.name} получил доступ к комнате ${user?.pendingRoom}`,
       });
       setConfirmingUserId(null);
     }
@@ -167,13 +176,17 @@ export const FloorsPanel = ({ users, currentUser, onApproveRoom, onRejectRoom }:
     );
   };
 
-  if (pendingUsers.length === 0) {
+  const totalPendingForUser = Object.values(floorGroups).flat().length;
+  
+  if (totalPendingForUser === 0) {
     return (
       <div className="text-center py-12">
         <Icon name="Check" size={48} className="mx-auto mb-4 text-muted-foreground opacity-50" />
         <h3 className="text-lg font-semibold mb-2">Нет заявок на проверку</h3>
         <p className="text-sm text-muted-foreground">
-          Все заявки на смену комнаты обработаны
+          {userFloor 
+            ? `Все заявки для ${userFloor} этажа обработаны` 
+            : 'Все заявки на смену комнаты обработаны'}
         </p>
       </div>
     );
@@ -184,51 +197,26 @@ export const FloorsPanel = ({ users, currentUser, onApproveRoom, onRejectRoom }:
       <div>
         <h3 className="text-lg font-semibold mb-1">Проверка комнат</h3>
         <p className="text-sm text-muted-foreground">
-          Заявки на подтверждение комнат по этажам ({pendingUsers.length})
+          Заявки на подтверждение комнат {userFloor ? `(${userFloor} этаж)` : 'по этажам'} ({totalPendingForUser})
         </p>
       </div>
 
-      <Tabs defaultValue="2" className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="2" className="gap-1">
-            <span className="hidden sm:inline">2 этаж</span>
-            <span className="sm:hidden">2</span>
-            {floorGroups[2].length > 0 && (
-              <Badge variant="destructive" className="ml-1 h-5 w-5 p-0 text-xs">
-                {floorGroups[2].length}
-              </Badge>
-            )}
-          </TabsTrigger>
-          <TabsTrigger value="3" className="gap-1">
-            <span className="hidden sm:inline">3 этаж</span>
-            <span className="sm:hidden">3</span>
-            {floorGroups[3].length > 0 && (
-              <Badge variant="destructive" className="ml-1 h-5 w-5 p-0 text-xs">
-                {floorGroups[3].length}
-              </Badge>
-            )}
-          </TabsTrigger>
-          <TabsTrigger value="4" className="gap-1">
-            <span className="hidden sm:inline">4 этаж</span>
-            <span className="sm:hidden">4</span>
-            {floorGroups[4].length > 0 && (
-              <Badge variant="destructive" className="ml-1 h-5 w-5 p-0 text-xs">
-                {floorGroups[4].length}
-              </Badge>
-            )}
-          </TabsTrigger>
-          <TabsTrigger value="5" className="gap-1">
-            <span className="hidden sm:inline">5 этаж</span>
-            <span className="sm:hidden">5</span>
-            {floorGroups[5].length > 0 && (
-              <Badge variant="destructive" className="ml-1 h-5 w-5 p-0 text-xs">
-                {floorGroups[5].length}
-              </Badge>
-            )}
-          </TabsTrigger>
+      <Tabs defaultValue={visibleFloors[0].toString()} className="w-full">
+        <TabsList className={`grid w-full grid-cols-${visibleFloors.length}`}>
+          {visibleFloors.map(floor => (
+            <TabsTrigger key={floor} value={floor.toString()} className="gap-1">
+              <span className="hidden sm:inline">{floor} этаж</span>
+              <span className="sm:hidden">{floor}</span>
+              {floorGroups[floor].length > 0 && (
+                <Badge variant="destructive" className="ml-1 h-5 w-5 p-0 text-xs">
+                  {floorGroups[floor].length}
+                </Badge>
+              )}
+            </TabsTrigger>
+          ))}
         </TabsList>
 
-        {[2, 3, 4, 5].map(floor => (
+        {visibleFloors.map(floor => (
           <TabsContent key={floor} value={floor.toString()} className="space-y-4">
             {floorGroups[floor].length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">

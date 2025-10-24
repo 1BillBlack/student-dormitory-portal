@@ -9,6 +9,7 @@ import Icon from '@/components/ui/icon';
 import { useAuth } from '@/contexts/AuthContext';
 import { RegisterForm } from '@/components/RegisterForm';
 import { useUsers } from '@/contexts/UsersContext';
+import { useAnnouncements } from '@/contexts/AnnouncementsContext';
 
 export const LoginForm = () => {
   const [showRegister, setShowRegister] = useState(false);
@@ -18,7 +19,8 @@ export const LoginForm = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const { login } = useAuth();
-  const { createUser } = useUsers();
+  const { createUser, users } = useUsers();
+  const { addAnnouncement } = useAnnouncements();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -54,6 +56,27 @@ export const LoginForm = () => {
     };
     
     createUser(newUser);
+    
+    const roomNumber = parseInt(room);
+    const floor = Math.floor(roomNumber / 100);
+    
+    const floorHeadPosition = `floor_${floor}_head`;
+    const floorHeads = users.filter(u => 
+      u.positions?.includes(floorHeadPosition as any) ||
+      u.positions?.includes('chairman' as any) ||
+      u.positions?.includes('vice_chairman' as any) ||
+      ['manager', 'admin', 'moderator'].includes(u.role)
+    );
+    
+    if (floorHeads.length > 0) {
+      addAnnouncement({
+        title: 'Новая заявка на комнату',
+        content: `Новый участник ${name} зарегистрировался и запросил комнату ${room}`,
+        priority: 'high',
+        date: new Date().toISOString().split('T')[0],
+      });
+    }
+    
     await login(email, password, false);
   };
 

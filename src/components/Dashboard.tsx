@@ -18,6 +18,7 @@ import {
 import Icon from '@/components/ui/icon';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUsers } from '@/contexts/UsersContext';
+import { useAnnouncements } from '@/contexts/AnnouncementsContext';
 import { CreateAnnouncementDialog } from '@/components/CreateAnnouncementDialog';
 import { EditAnnouncementDialog } from '@/components/EditAnnouncementDialog';
 import { AdminPanel } from '@/components/AdminPanel';
@@ -34,11 +35,7 @@ type TabType = 'home' | 'notifications' | 'profile' | 'duties' | 'cleanliness' |
 
 
 
-const initialAnnouncements = [
-  { id: 1, title: 'Собрание студсовета', date: '2025-10-25', content: 'Приглашаем всех на общее собрание в актовом зале', priority: 'high' },
-  { id: 2, title: 'График дежурств на ноябрь', date: '2025-10-24', content: 'Опубликован новый график дежурств. Проверьте свои даты!', priority: 'medium' },
-  { id: 3, title: 'Техническое обслуживание', date: '2025-10-23', content: 'Завтра будет отключена вода с 10:00 до 14:00', priority: 'high' },
-];
+
 
 const mockDuties = [
   { id: 1, student: 'Иван Петров', room: '305', date: '2025-10-25', status: 'pending', task: 'Уборка коридора 3 этаж' },
@@ -60,13 +57,13 @@ export const Dashboard = () => {
     const savedTab = localStorage.getItem('activeTab');
     return (savedTab as TabType) || 'home';
   });
-  const [announcements, setAnnouncements] = useState(initialAnnouncements);
-  const [editingAnnouncement, setEditingAnnouncement] = useState<typeof initialAnnouncements[0] | null>(null);
+  const [editingAnnouncement, setEditingAnnouncement] = useState<any>(null);
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
   const [statsPeriod, setStatsPeriod] = useState<'week' | 'month' | 'all'>('week');
   const { user, logout } = useAuth();
   const { users, updateUser, deleteUser, createUser, updateUserPositions } = useUsers();
+  const { announcements, addAnnouncement, updateAnnouncement, deleteAnnouncement } = useAnnouncements();
   const { toast } = useToast();
 
   useEffect(() => {
@@ -81,7 +78,21 @@ export const Dashboard = () => {
   const canSeeCleanlinessTab = 
     ['manager', 'admin', 'moderator'].includes(user?.role || '') || user?.room;
 
-  const pendingRoomsCount = users.filter(u => u.pendingRoom && !u.roomConfirmed).length;
+  const isFloorManager = user?.positions?.some(p => p.startsWith('floor_'));
+  const canSeeAdminPanel = canManageUsers || isFloorManager;
+  
+  const userFloor = isFloorManager && !canManageUsers
+    ? user?.positions?.find(p => p.startsWith('floor_'))?.replace('floor_', '')
+    : null;
+
+  const pendingRoomsCount = userFloor
+    ? users.filter(u => {
+        if (!u.pendingRoom || u.roomConfirmed) return false;
+        const roomNumber = parseInt(u.pendingRoom);
+        const floor = Math.floor(roomNumber / 100);
+        return floor.toString() === userFloor;
+      }).length
+    : users.filter(u => u.pendingRoom && !u.roomConfirmed).length;
 
   const displayRoom = user?.room || '';
   const todayScore = displayRoom ? getTodayRoomScore(displayRoom) : undefined;
@@ -128,6 +139,30 @@ export const Dashboard = () => {
     };
     
     updateUser(updatedUser);
+    
+    const roomNumber = parseInt(newRoom);
+    const floor = Math.floor(roomNumber / 100);
+    
+    const floorHeadPosition = `floor_${floor}_head`;
+    const floorHeads = users.filter(u => 
+      u.positions?.includes(floorHeadPosition as any) ||
+      u.positions?.includes('chairman' as any) ||
+      u.positions?.includes('vice_chairman' as any) ||
+      ['manager', 'admin', 'moderator'].includes(u.role)
+    );
+    
+    if (floorHeads.length > 0) {
+      const notificationText = user.room 
+        ? `${user.name} запросил смену комнаты с ${user.room} на ${newRoom}`
+        : `Новый участник ${user.name} запросил комнату ${newRoom}`;
+      
+      addAnnouncement({
+        title: 'Новая заявка на комнату',
+        content: notificationText,
+        priority: 'high',
+        date: new Date().toISOString().split('T')[0],
+      });
+    }
   };
 
   const handleApproveRoom = (userId: string) => {
@@ -158,21 +193,15 @@ export const Dashboard = () => {
   };
 
   const handleAddAnnouncement = (announcement: { title: string; content: string; priority: string; date: string }) => {
-    const newAnnouncement = {
-      id: announcements.length + 1,
-      ...announcement,
-    };
-    setAnnouncements([newAnnouncement, ...announcements]);
+    addAnnouncement(announcement);
   };
 
   const handleEditAnnouncement = (id: number, updatedData: { title: string; content: string; priority: string }) => {
-    setAnnouncements(announcements.map(a => 
-      a.id === id ? { ...a, ...updatedData } : a
-    ));
+    updateAnnouncement(id, updatedData);
   };
 
   const handleDeleteAnnouncement = (id: number) => {
-    setAnnouncements(announcements.filter(a => a.id !== id));
+    deleteAnnouncement(id);
     setDeletingId(null);
     toast({
       title: 'Удалено',
@@ -264,7 +293,7 @@ export const Dashboard = () => {
                 <span className="hidden sm:inline">Студсовет</span>
               </TabsTrigger>
             )}
-            {canManageUsers && (
+            {canSeeAdminPanel && (
               <TabsTrigger value="admin" className="gap-2 py-3">
                 <Icon name="Settings" size={18} />
                 <span className="hidden sm:inline">Админ-панель</span>
@@ -552,7 +581,7 @@ export const Dashboard = () => {
             </TabsContent>
           )}
 
-          {canManageUsers && (
+          {canSeeAdminPanel && (
             <TabsContent value="admin" className="space-y-4">
               <AdminPanel
                 users={users}
@@ -563,6 +592,8 @@ export const Dashboard = () => {
                 onUpdatePositions={handleUpdatePositions}
                 onApproveRoom={handleApproveRoom}
                 onRejectRoom={handleRejectRoom}
+                canManageUsers={canManageUsers}
+                userFloor={userFloor}
               />
             </TabsContent>
           )}
