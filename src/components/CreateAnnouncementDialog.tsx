@@ -15,9 +15,10 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import Icon from '@/components/ui/icon';
 import { useToast } from '@/hooks/use-toast';
+import { AnnouncementAudience } from '@/contexts/AnnouncementsContext';
 
 interface CreateAnnouncementDialogProps {
-  onAdd: (announcement: { title: string; content: string; priority: string; date: string }) => void;
+  onAdd: (announcement: { title: string; content: string; priority: string; date: string; expiresAt?: string; audience: AnnouncementAudience }) => void;
 }
 
 export const CreateAnnouncementDialog = ({ onAdd }: CreateAnnouncementDialogProps) => {
@@ -25,6 +26,8 @@ export const CreateAnnouncementDialog = ({ onAdd }: CreateAnnouncementDialogProp
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [priority, setPriority] = useState<'high' | 'medium'>('medium');
+  const [expiresAt, setExpiresAt] = useState('');
+  const [audience, setAudience] = useState<AnnouncementAudience>('all');
   const { toast } = useToast();
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -44,6 +47,8 @@ export const CreateAnnouncementDialog = ({ onAdd }: CreateAnnouncementDialogProp
       content,
       priority,
       date: new Date().toISOString().split('T')[0],
+      expiresAt: expiresAt || undefined,
+      audience,
     };
 
     onAdd(newAnnouncement);
@@ -56,6 +61,8 @@ export const CreateAnnouncementDialog = ({ onAdd }: CreateAnnouncementDialogProp
     setTitle('');
     setContent('');
     setPriority('medium');
+    setExpiresAt('');
+    setAudience('all');
     setOpen(false);
   };
 
@@ -106,6 +113,31 @@ export const CreateAnnouncementDialog = ({ onAdd }: CreateAnnouncementDialogProp
                   <SelectItem value="high">Важно</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="audience">Аудитория</Label>
+              <Select value={audience} onValueChange={(v) => setAudience(v as AnnouncementAudience)}>
+                <SelectTrigger id="audience">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Все общежитие</SelectItem>
+                  <SelectItem value="floor_2">2 этаж</SelectItem>
+                  <SelectItem value="floor_3">3 этаж</SelectItem>
+                  <SelectItem value="floor_4">4 этаж</SelectItem>
+                  <SelectItem value="floor_5">5 этаж</SelectItem>
+                  <SelectItem value="council">Только студсовет</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="expiresAt">Действует до (опционально)</Label>
+              <Input
+                id="expiresAt"
+                type="datetime-local"
+                value={expiresAt}
+                onChange={(e) => setExpiresAt(e.target.value)}
+              />
             </div>
           </div>
           <DialogFooter>

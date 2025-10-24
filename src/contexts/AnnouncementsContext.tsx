@@ -2,12 +2,16 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 
 const ANNOUNCEMENTS_STORAGE_KEY = 'dormitory_announcements';
 
+export type AnnouncementAudience = 'all' | 'floor_2' | 'floor_3' | 'floor_4' | 'floor_5' | 'council';
+
 export interface Announcement {
   id: number;
   title: string;
   content: string;
   priority: string;
   date: string;
+  expiresAt?: string;
+  audience: AnnouncementAudience;
 }
 
 interface AnnouncementsContextType {
@@ -26,6 +30,7 @@ const initialAnnouncements: Announcement[] = [
     content: 'Здесь вы можете отслеживать баллы чистоты своей комнаты, получать уведомления и многое другое.',
     priority: 'low',
     date: new Date().toISOString().split('T')[0],
+    audience: 'all',
   },
 ];
 
@@ -41,6 +46,22 @@ export const AnnouncementsProvider: React.FC<{ children: React.ReactNode }> = ({
     }
     return initialAnnouncements;
   });
+
+  useEffect(() => {
+    const now = new Date().toISOString();
+    const filtered = announcements.filter(a => !a.expiresAt || a.expiresAt > now);
+    if (filtered.length !== announcements.length) {
+      setAnnouncements(filtered);
+    }
+  }, []);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const now = new Date().toISOString();
+      setAnnouncements(prev => prev.filter(a => !a.expiresAt || a.expiresAt > now));
+    }, 60000);
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     localStorage.setItem(ANNOUNCEMENTS_STORAGE_KEY, JSON.stringify(announcements));

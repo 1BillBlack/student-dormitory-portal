@@ -228,11 +228,11 @@ export const Dashboard = () => {
     });
   };
 
-  const handleAddAnnouncement = (announcement: { title: string; content: string; priority: string; date: string }) => {
+  const handleAddAnnouncement = (announcement: any) => {
     addAnnouncement(announcement);
   };
 
-  const handleEditAnnouncement = (id: number, updatedData: { title: string; content: string; priority: string }) => {
+  const handleEditAnnouncement = (id: number, updatedData: any) => {
     updateAnnouncement(id, updatedData);
   };
 
@@ -244,6 +244,33 @@ export const Dashboard = () => {
       description: 'Объявление успешно удалено',
     });
   };
+
+  const getAudienceName = (audience: string) => {
+    const audiences: Record<string, string> = {
+      all: 'Для всех',
+      floor_2: '2 этаж',
+      floor_3: '3 этаж',
+      floor_4: '4 этаж',
+      floor_5: '5 этаж',
+      council: 'Студсовет',
+    };
+    return audiences[audience] || 'Для всех';
+  };
+
+  const canSeeAnnouncement = (announcement: any) => {
+    if (announcement.audience === 'all') return true;
+    if (announcement.audience === 'council') {
+      return hasCouncilAccess;
+    }
+    if (announcement.audience.startsWith('floor_')) {
+      const floor = announcement.audience.split('_')[1];
+      const userFloorNum = user?.room ? user.room.charAt(0) : null;
+      return userFloorNum === floor;
+    }
+    return false;
+  };
+
+  const filteredAnnouncements = announcements.filter(canSeeAnnouncement);
 
   const getRoleName = (role: string) => {
     const roles = {
@@ -314,16 +341,16 @@ export const Dashboard = () => {
               <Icon name="Home" size={18} />
               <span className="hidden sm:inline">Главная</span>
             </TabsTrigger>
-            <TabsTrigger value="duties" className="gap-2 py-3">
-              <Icon name="ClipboardList" size={18} />
-              <span className="hidden sm:inline">Отработки</span>
-            </TabsTrigger>
             {canSeeCleanlinessTab && (
               <TabsTrigger value="cleanliness" className="gap-2 py-3">
                 <Icon name="Sparkles" size={18} />
                 <span className="hidden sm:inline">Чистота</span>
               </TabsTrigger>
             )}
+            <TabsTrigger value="duties" className="gap-2 py-3">
+              <Icon name="ClipboardList" size={18} />
+              <span className="hidden sm:inline">Отработки</span>
+            </TabsTrigger>
             {hasCouncilAccess && (
               <TabsTrigger value="council" className="gap-2 py-3">
                 <Icon name="Award" size={18} />
@@ -362,24 +389,30 @@ export const Dashboard = () => {
                     <CreateAnnouncementDialog onAdd={handleAddAnnouncement} />
                   </div>
                 )}
-                {announcements.length === 0 && (
+                {filteredAnnouncements.length === 0 && (
                   <div className="text-center py-8 text-muted-foreground">
                     <Icon name="Bell" size={48} className="mx-auto mb-4 opacity-50" />
                     <p>Нет объявлений</p>
                   </div>
                 )}
-                {announcements.map((announcement, index) => (
+                {filteredAnnouncements.map((announcement, index) => (
                   <Card key={announcement.id} className="animate-slide-in hover:shadow-lg transition-shadow" style={{ animationDelay: `${index * 100}ms` }}>
                     <CardHeader className="p-4">
                       <div className="flex flex-col sm:flex-row items-start justify-between gap-3">
                         <div className="flex-1 min-w-0 w-full">
                           <CardTitle className="text-base sm:text-lg break-words">{announcement.title}</CardTitle>
-                          <CardDescription className="flex items-center gap-2 mt-1">
-                            <Icon name="Calendar" size={14} />
-                            {formatDate(announcement.date)}
+                          <CardDescription className="flex flex-wrap items-center gap-2 mt-1">
+                            <span className="flex items-center gap-1">
+                              <Icon name="Calendar" size={14} />
+                              {formatDate(announcement.date)}
+                            </span>
+                            <span className="flex items-center gap-1">
+                              <Icon name="Users" size={14} />
+                              {getAudienceName(announcement.audience)}
+                            </span>
                           </CardDescription>
                         </div>
-                        <div className="flex items-center gap-2 self-start sm:self-center w-full sm:w-auto justify-between sm:justify-end">
+                        <div className="flex items-center gap-2 self-start sm:self-center w-full sm:w-auto justify-between sm:justify-end flex-wrap">
                           <Badge variant={getPriorityColor(announcement.priority)} className="shrink-0">
                             {announcement.priority === 'high' ? 'Важно' : 'Обычное'}
                           </Badge>

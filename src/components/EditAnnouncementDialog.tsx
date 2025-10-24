@@ -14,26 +14,21 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import Icon from '@/components/ui/icon';
 import { useToast } from '@/hooks/use-toast';
-
-interface Announcement {
-  id: number;
-  title: string;
-  content: string;
-  priority: string;
-  date: string;
-}
+import { Announcement, AnnouncementAudience } from '@/contexts/AnnouncementsContext';
 
 interface EditAnnouncementDialogProps {
   announcement: Announcement | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onEdit: (id: number, announcement: { title: string; content: string; priority: string }) => void;
+  onEdit: (id: number, announcement: { title: string; content: string; priority: string; expiresAt?: string; audience: AnnouncementAudience }) => void;
 }
 
 export const EditAnnouncementDialog = ({ announcement, open, onOpenChange, onEdit }: EditAnnouncementDialogProps) => {
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [priority, setPriority] = useState<'high' | 'medium'>('medium');
+  const [expiresAt, setExpiresAt] = useState('');
+  const [audience, setAudience] = useState<AnnouncementAudience>('all');
   const { toast } = useToast();
 
   useEffect(() => {
@@ -41,6 +36,8 @@ export const EditAnnouncementDialog = ({ announcement, open, onOpenChange, onEdi
       setTitle(announcement.title);
       setContent(announcement.content);
       setPriority(announcement.priority as 'high' | 'medium');
+      setExpiresAt(announcement.expiresAt ? announcement.expiresAt.slice(0, 16) : '');
+      setAudience(announcement.audience);
     }
   }, [announcement]);
 
@@ -56,7 +53,7 @@ export const EditAnnouncementDialog = ({ announcement, open, onOpenChange, onEdi
       return;
     }
 
-    onEdit(announcement.id, { title, content, priority });
+    onEdit(announcement.id, { title, content, priority, expiresAt: expiresAt || undefined, audience });
     
     toast({
       title: 'Успешно!',
@@ -107,6 +104,31 @@ export const EditAnnouncementDialog = ({ announcement, open, onOpenChange, onEdi
                   <SelectItem value="high">Важно</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-audience">Аудитория</Label>
+              <Select value={audience} onValueChange={(v) => setAudience(v as AnnouncementAudience)}>
+                <SelectTrigger id="edit-audience">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Все общежитие</SelectItem>
+                  <SelectItem value="floor_2">2 этаж</SelectItem>
+                  <SelectItem value="floor_3">3 этаж</SelectItem>
+                  <SelectItem value="floor_4">4 этаж</SelectItem>
+                  <SelectItem value="floor_5">5 этаж</SelectItem>
+                  <SelectItem value="council">Только студсовет</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-expiresAt">Действует до (опционально)</Label>
+              <Input
+                id="edit-expiresAt"
+                type="datetime-local"
+                value={expiresAt}
+                onChange={(e) => setExpiresAt(e.target.value)}
+              />
             </div>
           </div>
           <DialogFooter>
