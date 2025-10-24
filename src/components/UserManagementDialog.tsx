@@ -32,6 +32,7 @@ interface UserManagementDialogProps {
   onSave: (user: User) => void;
   mode?: 'create' | 'edit';
   currentUserRole?: UserRole;
+  currentUserId?: string;
   canEditRole?: boolean;
   trigger?: React.ReactNode;
 }
@@ -42,7 +43,8 @@ export const UserManagementDialog = ({
   onOpenChange: controlledOnOpenChange, 
   onSave, 
   mode = 'edit', 
-  currentUserRole, 
+  currentUserRole,
+  currentUserId,
   canEditRole = true,
   trigger 
 }: UserManagementDialogProps) => {
@@ -61,13 +63,17 @@ export const UserManagementDialog = ({
   const open = controlledOpen !== undefined ? controlledOpen : internalOpen;
   const setOpen = controlledOnOpenChange || setInternalOpen;
 
+  const isEditingSelf = mode === 'edit' && user?.id === currentUserId;
+
   const canResetPassword = (): boolean => {
     if (!currentUserRole) return false;
+    if (isEditingSelf && ['manager', 'admin'].includes(currentUserRole)) return true;
     return ['manager', 'admin', 'moderator'].includes(currentUserRole);
   };
 
   const canEditEmail = (): boolean => {
     if (!currentUserRole) return false;
+    if (isEditingSelf && ['manager', 'admin'].includes(currentUserRole)) return true;
     return ['manager', 'admin'].includes(currentUserRole);
   };
 

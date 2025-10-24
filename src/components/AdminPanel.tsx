@@ -95,7 +95,7 @@ export const AdminPanel = ({
 
         <TabsContent value="logs" className="space-y-4">
           {canViewLogs ? (
-            <LogsPanel />
+            <LogsPanel canDelete={canManageUsers} />
           ) : (
             <NoAccessMessage />
           )}

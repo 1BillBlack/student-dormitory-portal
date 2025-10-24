@@ -1,7 +1,26 @@
+import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import Icon from '@/components/ui/icon';
-import { useLogs, Log } from '@/contexts/LogsContext';
+import { useLogs, Log, LogAction } from '@/contexts/LogsContext';
+import { useToast } from '@/hooks/use-toast';
+
+interface LogsPanelProps {
+  canDelete?: boolean;
+}
 
 const getActionName = (action: Log['action']) => {
   const actions = {
@@ -48,8 +67,54 @@ const formatDateTime = (timestamp: string) => {
   return `${day}.${month}.${year} ${hours}:${minutes}`;
 };
 
-export const LogsPanel = () => {
-  const { logs } = useLogs();
+const getActionCategory = (action: LogAction): string => {
+  if (action.includes('room')) return 'room';
+  if (action.includes('announcement')) return 'announcement';
+  if (action.includes('task')) return 'task';
+  if (action.includes('role') || action.includes('position')) return 'user';
+  return 'other';
+};
+
+export const LogsPanel = ({ canDelete = false }: LogsPanelProps) => {
+  const { logs, deleteLog, clearAllLogs } = useLogs();
+  const { toast } = useToast();
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterCategory, setFilterCategory] = useState<string>('all');
+  const [deletingLogId, setDeletingLogId] = useState<number | null>(null);
+  const [showClearDialog, setShowClearDialog] = useState(false);
+
+  const filteredLogs = logs.filter(log => {
+    const matchesSearch = 
+      log.userName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      log.details.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (log.targetUserName && log.targetUserName.toLowerCase().includes(searchQuery.toLowerCase()));
+
+    const matchesCategory = 
+      filterCategory === 'all' || 
+      getActionCategory(log.action) === filterCategory;
+
+    return matchesSearch && matchesCategory;
+  });
+
+  const handleDeleteLog = () => {
+    if (deletingLogId) {
+      deleteLog(deletingLogId);
+      toast({
+        title: 'Удалено',
+        description: 'Лог успешно удалён',
+      });
+      setDeletingLogId(null);
+    }
+  };
+
+  const handleClearAll = () => {
+    clearAllLogs();
+    toast({
+      title: 'Очищено',
+      description: 'Все логи успешно удалены',
+    });
+    setShowClearDialog(false);
+  };
 
   if (logs.length === 0) {
     return (
@@ -61,52 +126,140 @@ export const LogsPanel = () => {
   }
 
   return (
-    <div className="space-y-3">
-      {logs.map((log) => (
-        <Card key={log.id}>
-          <CardHeader className="p-4 pb-3">
-            <div className="flex items-start justify-between gap-3">
-              <div className="flex items-start gap-3 flex-1 min-w-0">
-                <div className="mt-0.5">
-                  <Icon name={getActionIcon(log.action)} size={20} className="text-muted-foreground" />
+    <div className="space-y-4">
+      <div className="flex flex-col sm:flex-row gap-3">
+        <div className="flex-1">
+          <Input
+            placeholder="Поиск по логам..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full"
+          />
+        </div>
+        <Select value={filterCategory} onValueChange={setFilterCategory}>
+          <SelectTrigger className="w-full sm:w-[200px]">
+            <SelectValue placeholder="Категория" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Все категории</SelectItem>
+            <SelectItem value="room">Комнаты</SelectItem>
+            <SelectItem value="announcement">Объявления</SelectItem>
+            <SelectItem value="task">Задачи</SelectItem>
+            <SelectItem value="user">Пользователи</SelectItem>
+          </SelectContent>
+        </Select>
+        {canDelete && (
+          <Button
+            variant="destructive"
+            onClick={() => setShowClearDialog(true)}
+            className="gap-2"
+          >
+            <Icon name="Trash2" size={16} />
+            Очистить всё
+          </Button>
+        )}
+      </div>
+
+      {filteredLogs.length === 0 ? (
+        <div className="text-center py-8 text-muted-foreground">
+          <Icon name="Search" size={48} className="mx-auto mb-4 opacity-50" />
+          <p>Ничего не найдено</p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {filteredLogs.map((log) => (
+            <Card key={log.id}>
+              <CardHeader className="p-4 pb-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-start gap-3 flex-1 min-w-0">
+                    <div className="mt-0.5">
+                      <Icon name={getActionIcon(log.action)} size={20} className="text-muted-foreground" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <CardTitle className="text-base break-words">{getActionName(log.action)}</CardTitle>
+                      <CardDescription className="text-xs mt-1">
+                        {formatDateTime(log.timestamp)}
+                      </CardDescription>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <Badge variant={getActionColor(log.action)}>
+                      {log.action.includes('created') || log.action.includes('approved') || log.action.includes('assigned') ? 'Создание' :
+                       log.action.includes('deleted') || log.action.includes('rejected') || log.action.includes('removed') ? 'Удаление' : 'Изменение'}
+                    </Badge>
+                    {canDelete && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setDeletingLogId(log.id)}
+                        className="h-8 w-8"
+                      >
+                        <Icon name="Trash2" size={16} className="text-destructive" />
+                      </Button>
+                    )}
+                  </div>
                 </div>
-                <div className="flex-1 min-w-0">
-                  <CardTitle className="text-base break-words">{getActionName(log.action)}</CardTitle>
-                  <CardDescription className="text-xs mt-1">
-                    {formatDateTime(log.timestamp)}
-                  </CardDescription>
+              </CardHeader>
+              <CardContent className="p-4 pt-0">
+                <div className="space-y-2 text-sm">
+                  <div className="flex items-start gap-2">
+                    <Icon name="User" size={14} className="mt-0.5 text-muted-foreground shrink-0" />
+                    <span className="break-words">
+                      <span className="font-medium">{log.userName}</span>
+                    </span>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <Icon name="Info" size={14} className="mt-0.5 text-muted-foreground shrink-0" />
+                    <span className="text-muted-foreground break-words">{log.details}</span>
+                  </div>
+                  {log.targetUserName && (
+                    <div className="flex items-start gap-2">
+                      <Icon name="UserCheck" size={14} className="mt-0.5 text-muted-foreground shrink-0" />
+                      <span className="text-muted-foreground break-words">
+                        Участник: <span className="font-medium text-foreground">{log.targetUserName}</span>
+                      </span>
+                    </div>
+                  )}
                 </div>
-              </div>
-              <Badge variant={getActionColor(log.action)} className="shrink-0">
-                {log.action.includes('created') || log.action.includes('approved') || log.action.includes('assigned') ? 'Создание' :
-                 log.action.includes('deleted') || log.action.includes('rejected') || log.action.includes('removed') ? 'Удаление' : 'Изменение'}
-              </Badge>
-            </div>
-          </CardHeader>
-          <CardContent className="p-4 pt-0">
-            <div className="space-y-2 text-sm">
-              <div className="flex items-start gap-2">
-                <Icon name="User" size={14} className="mt-0.5 text-muted-foreground shrink-0" />
-                <span className="break-words">
-                  <span className="font-medium">{log.userName}</span>
-                </span>
-              </div>
-              <div className="flex items-start gap-2">
-                <Icon name="Info" size={14} className="mt-0.5 text-muted-foreground shrink-0" />
-                <span className="text-muted-foreground break-words">{log.details}</span>
-              </div>
-              {log.targetUserName && (
-                <div className="flex items-start gap-2">
-                  <Icon name="UserCheck" size={14} className="mt-0.5 text-muted-foreground shrink-0" />
-                  <span className="text-muted-foreground break-words">
-                    Участник: <span className="font-medium text-foreground">{log.targetUserName}</span>
-                  </span>
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      ))}
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+
+      <AlertDialog open={!!deletingLogId} onOpenChange={(open) => !open && setDeletingLogId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Удалить лог?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Это действие нельзя отменить. Лог будет удалён навсегда.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Отмена</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteLog} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Удалить
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={showClearDialog} onOpenChange={setShowClearDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Очистить все логи?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Это действие нельзя отменить. Все логи будут удалены навсегда.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Отмена</AlertDialogCancel>
+            <AlertDialogAction onClick={handleClearAll} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Очистить
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

@@ -32,6 +32,8 @@ export interface Log {
 interface LogsContextType {
   logs: Log[];
   addLog: (log: Omit<Log, 'id' | 'timestamp'>) => void;
+  deleteLog: (id: number) => void;
+  clearAllLogs: () => void;
 }
 
 const LogsContext = createContext<LogsContextType | undefined>(undefined);
@@ -62,8 +64,16 @@ export const LogsProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setLogs(prev => [newLog, ...prev]);
   };
 
+  const deleteLog = (id: number) => {
+    setLogs(prev => prev.filter(log => log.id !== id));
+  };
+
+  const clearAllLogs = () => {
+    setLogs([]);
+  };
+
   return (
-    <LogsContext.Provider value={{ logs, addLog }}>
+    <LogsContext.Provider value={{ logs, addLog, deleteLog, clearAllLogs }}>
       {children}
     </LogsContext.Provider>
   );

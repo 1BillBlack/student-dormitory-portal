@@ -202,6 +202,7 @@ export const UsersPanel = ({ users, currentUser, onUpdateUser, onDeleteUser, onC
         }}
         mode="edit"
         currentUserRole={currentUser.role}
+        currentUserId={currentUser.id}
         canEditRole={editingUser?.id !== currentUser.id}
       />
 
@@ -215,6 +216,7 @@ export const UsersPanel = ({ users, currentUser, onUpdateUser, onDeleteUser, onC
         }}
         mode="create"
         currentUserRole={currentUser.role}
+        currentUserId={currentUser.id}
       />
 
       <PositionsDialog

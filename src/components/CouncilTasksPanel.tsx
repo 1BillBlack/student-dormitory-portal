@@ -48,11 +48,14 @@ interface CouncilTasksPanelProps {
   canManage: boolean;
   userName: string;
   councilMembers: User[];
+  onTaskCreated?: (taskTitle: string) => void;
+  onTaskUpdated?: (taskTitle: string) => void;
+  onTaskDeleted?: (taskTitle: string) => void;
 }
 
 const STORAGE_KEY = 'council_tasks';
 
-export const CouncilTasksPanel = ({ canManage, userName, councilMembers }: CouncilTasksPanelProps) => {
+export const CouncilTasksPanel = ({ canManage, userName, councilMembers, onTaskCreated, onTaskUpdated, onTaskDeleted }: CouncilTasksPanelProps) => {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [open, setOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
@@ -116,6 +119,8 @@ export const CouncilTasksPanel = ({ canManage, userName, councilMembers }: Counc
 
     saveTasks([...tasks, newTask]);
     
+    onTaskCreated?.(newTask.title);
+    
     toast({
       title: 'Задача создана',
       description: 'Новая задача успешно добавлена',
@@ -160,6 +165,8 @@ export const CouncilTasksPanel = ({ canManage, userName, councilMembers }: Counc
 
     saveTasks(tasks.map(t => t.id === editingTask.id ? updatedTask : t));
     
+    onTaskUpdated?.(updatedTask.title);
+    
     toast({
       title: 'Сохранено',
       description: 'Изменения успешно сохранены',
@@ -191,8 +198,13 @@ export const CouncilTasksPanel = ({ canManage, userName, councilMembers }: Counc
   };
 
   const handleDeleteTask = (taskId: number) => {
+    const task = tasks.find(t => t.id === taskId);
     saveTasks(tasks.filter(t => t.id !== taskId));
     setDeleteTaskId(null);
+    
+    if (task) {
+      onTaskDeleted?.(task.title);
+    }
     
     toast({
       title: 'Удалено',

@@ -856,6 +856,24 @@ export const Dashboard = () => {
               <CouncilPanel
                 users={users}
                 currentUser={user!}
+                onTaskCreated={(title) => addLog({
+                  action: 'task_created',
+                  userId: user?.id || '',
+                  userName: user?.name || '',
+                  details: `Создал задачу "${title}"`,
+                })}
+                onTaskUpdated={(title) => addLog({
+                  action: 'task_updated',
+                  userId: user?.id || '',
+                  userName: user?.name || '',
+                  details: `Обновил задачу "${title}"`,
+                })}
+                onTaskDeleted={(title) => addLog({
+                  action: 'task_deleted',
+                  userId: user?.id || '',
+                  userName: user?.name || '',
+                  details: `Удалил задачу "${title}"`,
+                })}
               />
             </TabsContent>
           )}

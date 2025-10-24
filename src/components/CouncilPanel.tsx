@@ -10,9 +10,12 @@ import { CouncilTasksPanel } from '@/components/CouncilTasksPanel';
 interface CouncilPanelProps {
   users: User[];
   currentUser: User;
+  onTaskCreated?: (taskTitle: string) => void;
+  onTaskUpdated?: (taskTitle: string) => void;
+  onTaskDeleted?: (taskTitle: string) => void;
 }
 
-export const CouncilPanel = ({ users, currentUser }: CouncilPanelProps) => {
+export const CouncilPanel = ({ users, currentUser, onTaskCreated, onTaskUpdated, onTaskDeleted }: CouncilPanelProps) => {
   const [activeTab, setActiveTab] = useState<'members' | 'tasks'>('tasks');
   
   const councilMembers = users.filter(u => 
@@ -52,7 +55,14 @@ export const CouncilPanel = ({ users, currentUser }: CouncilPanelProps) => {
       </TabsList>
 
       <TabsContent value="tasks">
-        <CouncilTasksPanel canManage={canManageTasks} userName={currentUser.name} councilMembers={councilMembers} />
+        <CouncilTasksPanel 
+          canManage={canManageTasks} 
+          userName={currentUser.name} 
+          councilMembers={councilMembers}
+          onTaskCreated={onTaskCreated}
+          onTaskUpdated={onTaskUpdated}
+          onTaskDeleted={onTaskDeleted}
+        />
       </TabsContent>
 
       <TabsContent value="members" className="space-y-4">
