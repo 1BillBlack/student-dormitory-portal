@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import Icon from '@/components/ui/icon';
 
 interface RegisterFormProps {
-  onRegister: (email: string, password: string, name: string, group: string, studyYears: number) => Promise<void>;
+  onRegister: (email: string, password: string, name: string, group: string, studyYears: number, room: string) => Promise<void>;
   onBackToLogin: () => void;
 }
 
@@ -18,6 +18,7 @@ export const RegisterForm = ({ onRegister, onBackToLogin }: RegisterFormProps) =
   const [confirmPassword, setConfirmPassword] = useState('');
   const [name, setName] = useState('');
   const [group, setGroup] = useState('');
+  const [room, setRoom] = useState('');
   const [studyYears, setStudyYears] = useState<number>(4);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
@@ -51,9 +52,15 @@ export const RegisterForm = ({ onRegister, onBackToLogin }: RegisterFormProps) =
       setIsLoading(false);
       return;
     }
+
+    if (!room.trim()) {
+      setError('Укажите номер комнаты');
+      setIsLoading(false);
+      return;
+    }
     
     try {
-      await onRegister(email, password, name, group, studyYears);
+      await onRegister(email, password, name, group, studyYears, room);
     } catch (error) {
       console.error('Registration error:', error);
       if (error instanceof Error) {
@@ -135,6 +142,26 @@ export const RegisterForm = ({ onRegister, onBackToLogin }: RegisterFormProps) =
                   placeholder="2111 или 2-МОС"
                   value={group}
                   onChange={(e) => setGroup(e.target.value)}
+                  required
+                  className="pl-10 h-11"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="room">Номер комнаты</Label>
+              <div className="relative">
+                <Icon 
+                  name="Home" 
+                  size={18} 
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+                />
+                <Input
+                  id="room"
+                  type="text"
+                  placeholder="Например, 305"
+                  value={room}
+                  onChange={(e) => setRoom(e.target.value)}
                   required
                   className="pl-10 h-11"
                 />

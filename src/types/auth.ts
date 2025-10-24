@@ -29,6 +29,8 @@ export interface User {
   group?: string;
   studyYears?: number;
   registeredAt?: string;
+  pendingRoom?: string;
+  roomConfirmed?: boolean;
 }
 
 export interface AuthState {

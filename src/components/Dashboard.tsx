@@ -24,6 +24,7 @@ import { AdminPanel } from '@/components/AdminPanel';
 import { CouncilPanel } from '@/components/CouncilPanel';
 import { CleanlinessPanel } from '@/components/CleanlinessPanel';
 import { UserManagementDialog } from '@/components/UserManagementDialog';
+import { ChangeRoomDialog } from '@/components/ChangeRoomDialog';
 import { useToast } from '@/hooks/use-toast';
 import { UserPosition } from '@/types/auth';
 import { getPositionName } from '@/utils/positions';
@@ -80,6 +81,8 @@ export const Dashboard = () => {
   const canSeeCleanlinessTab = 
     ['manager', 'admin', 'moderator'].includes(user?.role || '') || user?.room;
 
+  const pendingRoomsCount = users.filter(u => u.pendingRoom && !u.roomConfirmed).length;
+
   const displayRoom = user?.room || '';
   const todayScore = displayRoom ? getTodayRoomScore(displayRoom) : undefined;
   const roomScores = displayRoom ? getRoomScores(displayRoom, statsPeriod) : [];
@@ -113,6 +116,45 @@ export const Dashboard = () => {
       title: 'Успешно!',
       description: 'Должности обновлены',
     });
+  };
+
+  const handleChangeRoom = (newRoom: string) => {
+    if (!user) return;
+    
+    const updatedUser = {
+      ...user,
+      pendingRoom: newRoom,
+      roomConfirmed: false,
+    };
+    
+    updateUser(updatedUser);
+  };
+
+  const handleApproveRoom = (userId: string) => {
+    const userToUpdate = users.find(u => u.id === userId);
+    if (!userToUpdate || !userToUpdate.pendingRoom) return;
+    
+    const updatedUser = {
+      ...userToUpdate,
+      room: userToUpdate.pendingRoom,
+      pendingRoom: undefined,
+      roomConfirmed: true,
+    };
+    
+    updateUser(updatedUser);
+  };
+
+  const handleRejectRoom = (userId: string) => {
+    const userToUpdate = users.find(u => u.id === userId);
+    if (!userToUpdate) return;
+    
+    const updatedUser = {
+      ...userToUpdate,
+      pendingRoom: undefined,
+      roomConfirmed: false,
+    };
+    
+    updateUser(updatedUser);
   };
 
   const handleAddAnnouncement = (announcement: { title: string; content: string; priority: string; date: string }) => {
@@ -226,6 +268,11 @@ export const Dashboard = () => {
               <TabsTrigger value="admin" className="gap-2 py-3">
                 <Icon name="Settings" size={18} />
                 <span className="hidden sm:inline">Админ-панель</span>
+                {pendingRoomsCount > 0 && (
+                  <Badge variant="destructive" className="ml-1 h-5 min-w-5 px-1 text-xs">
+                    {pendingRoomsCount}
+                  </Badge>
+                )}
               </TabsTrigger>
             )}
           </TabsList>
@@ -354,6 +401,26 @@ export const Dashboard = () => {
                             ))}
                           </div>
                         </>
+                      )}
+                    </div>
+                    
+                    <div className="pt-4 border-t mt-4">
+                      <ChangeRoomDialog 
+                        currentRoom={user?.room}
+                        onChangeRoom={handleChangeRoom}
+                      />
+                      {user?.pendingRoom && !user?.roomConfirmed && (
+                        <div className="mt-3 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+                          <div className="flex items-start gap-2">
+                            <Icon name="Clock" size={16} className="text-yellow-600 dark:text-yellow-500 mt-0.5 shrink-0" />
+                            <div className="text-sm">
+                              <p className="font-medium text-yellow-800 dark:text-yellow-300">Ожидает подтверждения</p>
+                              <p className="text-yellow-700 dark:text-yellow-400 mt-1">
+                                Заявка на комнату {user.pendingRoom} отправлена на проверку старосте этажа
+                              </p>
+                            </div>
+                          </div>
+                        </div>
                       )}
                     </div>
                   </CardContent>
@@ -494,6 +561,8 @@ export const Dashboard = () => {
                 onDeleteUser={(userId) => setDeletingUserId(userId)}
                 onCreateUser={createUser}
                 onUpdatePositions={handleUpdatePositions}
+                onApproveRoom={handleApproveRoom}
+                onRejectRoom={handleRejectRoom}
               />
             </TabsContent>
           )}

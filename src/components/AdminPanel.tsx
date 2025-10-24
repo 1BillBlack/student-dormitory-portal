@@ -3,6 +3,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Icon from '@/components/ui/icon';
 import { User, UserPosition } from '@/types/auth';
 import { UsersPanel } from '@/components/UsersPanel';
+import { FloorsPanel } from '@/components/FloorsPanel';
 
 interface AdminPanelProps {
   users: User[];
@@ -11,6 +12,8 @@ interface AdminPanelProps {
   onDeleteUser: (userId: string) => void;
   onCreateUser: (user: User) => void;
   onUpdatePositions: (userId: string, positions: UserPosition[]) => void;
+  onApproveRoom: (userId: string) => void;
+  onRejectRoom: (userId: string) => void;
 }
 
 type AdminTabType = 'users' | 'floors' | 'settings';
@@ -21,7 +24,9 @@ export const AdminPanel = ({
   onUpdateUser, 
   onDeleteUser, 
   onCreateUser, 
-  onUpdatePositions 
+  onUpdatePositions,
+  onApproveRoom,
+  onRejectRoom
 }: AdminPanelProps) => {
   const [activeAdminTab, setActiveAdminTab] = useState<AdminTabType>('users');
 
@@ -55,9 +60,12 @@ export const AdminPanel = ({
         </TabsContent>
 
         <TabsContent value="floors" className="space-y-4">
-          <div className="text-center text-muted-foreground py-8">
-            Управление этажами будет доступно позже
-          </div>
+          <FloorsPanel
+            users={users}
+            currentUser={currentUser}
+            onApproveRoom={onApproveRoom}
+            onRejectRoom={onRejectRoom}
+          />
         </TabsContent>
 
         <TabsContent value="settings" className="space-y-4">

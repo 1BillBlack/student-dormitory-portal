@@ -39,7 +39,7 @@ export const LoginForm = () => {
     }
   };
 
-  const handleRegister = async (email: string, password: string, name: string, group: string, studyYears: number) => {
+  const handleRegister = async (email: string, password: string, name: string, group: string, studyYears: number, room: string) => {
     const newUser = {
       id: Date.now().toString(),
       email,
@@ -47,6 +47,8 @@ export const LoginForm = () => {
       role: 'member' as const,
       group,
       studyYears,
+      pendingRoom: room,
+      roomConfirmed: false,
       registeredAt: new Date().toISOString(),
       isFrozen: false,
     };
