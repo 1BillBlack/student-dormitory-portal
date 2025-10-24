@@ -105,8 +105,8 @@ def handle_users(method: str, event: Dict[str, Any], conn, cur) -> Dict[str, Any
             if not validate_email(email):
                 return {'statusCode': 400, 'body': json.dumps({'error': 'Invalid email format'})}
             
-            if len(password) > 1000:
-                return {'statusCode': 400, 'body': json.dumps({'error': 'Password too long'})}
+            if len(password) > 32:
+                return {'statusCode': 400, 'body': json.dumps({'error': 'Password must be 32 characters or less'})}
             
             password_hash = hash_password(password)
             
@@ -140,8 +140,8 @@ def handle_users(method: str, event: Dict[str, Any], conn, cur) -> Dict[str, Any
             if len(password) < 6:
                 return {'statusCode': 400, 'body': json.dumps({'error': 'Password must be at least 6 characters'})}
             
-            if len(password) > 1000:
-                return {'statusCode': 400, 'body': json.dumps({'error': 'Password too long'})}
+            if len(password) > 32:
+                return {'statusCode': 400, 'body': json.dumps({'error': 'Password must be 32 characters or less'})}
             
             cur.execute("SELECT id FROM users WHERE email = %s", (email,))
             if cur.fetchone():
