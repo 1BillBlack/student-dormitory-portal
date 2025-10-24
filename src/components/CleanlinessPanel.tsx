@@ -158,7 +158,11 @@ const getMonthDates = (monthOffset: number = 0): string[] => {
   
   for (let i = 1; i <= daysInMonth; i++) {
     const date = new Date(year, month, i);
-    dates.push(date.toISOString().split('T')[0]);
+    date.setHours(12, 0, 0, 0);
+    const yearStr = date.getFullYear();
+    const monthStr = String(date.getMonth() + 1).padStart(2, '0');
+    const dayStr = String(date.getDate()).padStart(2, '0');
+    dates.push(`${yearStr}-${monthStr}-${dayStr}`);
   }
   return dates;
 };
