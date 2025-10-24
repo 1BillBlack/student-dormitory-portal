@@ -20,6 +20,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useUsers } from '@/contexts/UsersContext';
 import { useAnnouncements } from '@/contexts/AnnouncementsContext';
 import { useNotifications } from '@/contexts/NotificationsContext';
+import { useLogs } from '@/contexts/LogsContext';
 import { CreateAnnouncementDialog } from '@/components/CreateAnnouncementDialog';
 import { EditAnnouncementDialog } from '@/components/EditAnnouncementDialog';
 import { AdminPanel } from '@/components/AdminPanel';
@@ -65,8 +66,9 @@ export const Dashboard = () => {
   const [statsPeriod, setStatsPeriod] = useState<'week' | 'month' | 'all'>('week');
   const { user, logout } = useAuth();
   const { users, updateUser, deleteUser, createUser, updateUserPositions } = useUsers();
-  const { announcements, archivedAnnouncements, addAnnouncement, updateAnnouncement, deleteAnnouncement } = useAnnouncements();
+  const { announcements, addAnnouncement, updateAnnouncement, deleteAnnouncement } = useAnnouncements();
   const { addNotification } = useNotifications();
+  const { addLog } = useLogs();
   const { toast } = useToast();
 
   useEffect(() => {
@@ -88,6 +90,12 @@ export const Dashboard = () => {
 
   const isFloorManager = user?.positions?.some(p => p.startsWith('floor_'));
   const canSeeAdminPanel = canManageUsers || isFloorManager;
+  
+  const canViewLogs = 
+    ['manager', 'admin', 'moderator'].includes(user?.role || '') ||
+    user?.positions?.some(p => 
+      ['council_president', 'council_vice_president', 'council_secretary'].includes(p)
+    );
   
   const userFloor = isFloorManager && !canManageUsers
     ? user?.positions?.find(p => p.startsWith('floor_'))?.replace('floor_', '')
@@ -130,10 +138,51 @@ export const Dashboard = () => {
     setDeletingUserId(null);
   };
 
+  const handleUpdateUser = (updatedUser: any) => {
+    const oldUser = users.find(u => u.id === updatedUser.id);
+    
+    if (oldUser && oldUser.role !== updatedUser.role) {
+      const roleNames = {
+        manager: 'Менеджер',
+        admin: 'Администратор',
+        moderator: 'Модератор',
+        member: 'Участник',
+      };
+      
+      const oldRoleName = roleNames[oldUser.role as keyof typeof roleNames] || oldUser.role;
+      const newRoleName = roleNames[updatedUser.role as keyof typeof roleNames] || updatedUser.role;
+      
+      addLog({
+        action: 'role_assigned',
+        userId: user?.id || '',
+        userName: user?.name || '',
+        details: `Изменил роль с "${oldRoleName}" на "${newRoleName}"`,
+        targetUserId: updatedUser.id,
+        targetUserName: updatedUser.name,
+      });
+    }
+    
+    if (oldUser && oldUser.room !== updatedUser.room && updatedUser.room) {
+      addLog({
+        action: 'room_changed',
+        userId: user?.id || '',
+        userName: user?.name || '',
+        details: oldUser.room 
+          ? `Сменил комнату с ${oldUser.room} на ${updatedUser.room}`
+          : `Назначил комнату ${updatedUser.room}`,
+        targetUserId: updatedUser.id,
+        targetUserName: updatedUser.name,
+      });
+    }
+    
+    updateUser(updatedUser);
+  };
+
   const handleUpdatePositions = (userId: string, positions: UserPosition[]) => {
     const targetUser = users.find(u => u.id === userId);
     const oldPositions = targetUser?.positions || [];
     const newPositions = positions.filter(p => !oldPositions.includes(p));
+    const removedPositions = oldPositions.filter(p => !positions.includes(p));
     
     updateUserPositions(userId, positions);
     toast({
@@ -149,6 +198,28 @@ export const Dashboard = () => {
         message: `Вам назначена новая должность: ${positionNames}`,
         userId: targetUser.id,
       });
+      
+      addLog({
+        action: 'position_assigned',
+        userId: user?.id || '',
+        userName: user?.name || '',
+        details: `Назначил должность: ${positionNames}`,
+        targetUserId: targetUser.id,
+        targetUserName: targetUser.name,
+      });
+    }
+    
+    if (removedPositions.length > 0 && targetUser) {
+      const positionNames = removedPositions.map(p => getPositionName(p)).join(', ');
+      
+      addLog({
+        action: 'position_removed',
+        userId: user?.id || '',
+        userName: user?.name || '',
+        details: `Снял должность: ${positionNames}`,
+        targetUserId: targetUser.id,
+        targetUserName: targetUser.name,
+      });
     }
   };
 
@@ -162,6 +233,15 @@ export const Dashboard = () => {
     };
     
     updateUser(updatedUser);
+    
+    addLog({
+      action: 'room_request_created',
+      userId: user.id,
+      userName: user.name,
+      details: user.room 
+        ? `Запросил смену комнаты с ${user.room} на ${newRoom}`
+        : `Запросил комнату ${newRoom}`,
+    });
     
     const roomNumber = parseInt(newRoom);
     const floor = Math.floor(roomNumber / 100);
@@ -203,6 +283,15 @@ export const Dashboard = () => {
     
     updateUser(updatedUser);
     
+    addLog({
+      action: 'room_request_approved',
+      userId: user?.id || '',
+      userName: user?.name || '',
+      details: `Одобрил заявку на комнату ${userToUpdate.pendingRoom}`,
+      targetUserId: userToUpdate.id,
+      targetUserName: userToUpdate.name,
+    });
+    
     addNotification({
       type: 'room_approved',
       title: 'Комната подтверждена',
@@ -225,6 +314,15 @@ export const Dashboard = () => {
     
     updateUser(updatedUser);
     
+    addLog({
+      action: 'room_request_rejected',
+      userId: user?.id || '',
+      userName: user?.name || '',
+      details: `Отклонил заявку на комнату ${rejectedRoom}`,
+      targetUserId: userToUpdate.id,
+      targetUserName: userToUpdate.name,
+    });
+    
     addNotification({
       type: 'room_rejected',
       title: 'Заявка отклонена',
@@ -238,15 +336,43 @@ export const Dashboard = () => {
       ...announcement,
       createdBy: user?.id,
     });
+    
+    addLog({
+      action: 'announcement_created',
+      userId: user?.id || '',
+      userName: user?.name || '',
+      details: `Создал объявление "${announcement.title}" для аудитории ${getAudienceName(announcement.audience)}`,
+    });
   };
 
   const handleEditAnnouncement = (id: number, updatedData: any) => {
+    const announcement = announcements.find(a => a.id === id);
     updateAnnouncement(id, updatedData);
+    
+    if (announcement) {
+      addLog({
+        action: 'announcement_updated',
+        userId: user?.id || '',
+        userName: user?.name || '',
+        details: `Отредактировал объявление "${announcement.title}"`,
+      });
+    }
   };
 
   const handleDeleteAnnouncement = (id: number) => {
+    const announcement = announcements.find(a => a.id === id);
     deleteAnnouncement(id);
     setDeletingId(null);
+    
+    if (announcement) {
+      addLog({
+        action: 'announcement_deleted',
+        userId: user?.id || '',
+        userName: user?.name || '',
+        details: `Удалил объявление "${announcement.title}"`,
+      });
+    }
+    
     toast({
       title: 'Удалено',
       description: 'Объявление успешно удалено',
@@ -425,14 +551,10 @@ export const Dashboard = () => {
 
           <TabsContent value="home" className="space-y-6">
             <Tabs defaultValue="notifications" className="w-full">
-              <TabsList className="grid w-full grid-cols-3 mb-6">
+              <TabsList className="grid w-full grid-cols-2 mb-6">
                 <TabsTrigger value="notifications" className="gap-2">
                   <Icon name="Bell" size={18} />
                   Уведомления
-                </TabsTrigger>
-                <TabsTrigger value="archive" className="gap-2">
-                  <Icon name="Archive" size={18} />
-                  Архив
                 </TabsTrigger>
                 <TabsTrigger value="profile" className="gap-2">
                   <Icon name="User" size={18} />
@@ -502,49 +624,6 @@ export const Dashboard = () => {
                     </CardContent>
                   </Card>
                 ))}
-              </TabsContent>
-
-              <TabsContent value="archive" className="space-y-4">
-                {archivedAnnouncements.length === 0 ? (
-                  <div className="text-center py-8 text-muted-foreground">
-                    <Icon name="Archive" size={48} className="mx-auto mb-4 opacity-50" />
-                    <p>Архив пуст</p>
-                  </div>
-                ) : (
-                  archivedAnnouncements.map((announcement, index) => (
-                    <Card key={announcement.id} className="animate-slide-in opacity-60" style={{ animationDelay: `${index * 100}ms` }}>
-                      <CardHeader className="p-4">
-                        <div className="flex flex-col sm:flex-row items-start justify-between gap-3">
-                          <div className="flex-1 min-w-0 w-full">
-                            <CardTitle className="text-base sm:text-lg break-words">{announcement.title}</CardTitle>
-                            <CardDescription className="flex flex-wrap items-center gap-2 mt-1">
-                              <span className="flex items-center gap-1">
-                                <Icon name="Calendar" size={14} />
-                                {formatDate(announcement.date)}
-                              </span>
-                              <span className="flex items-center gap-1">
-                                <Icon name="Users" size={14} />
-                                {getAudienceName(announcement.audience)}
-                              </span>
-                              {announcement.archivedAt && (
-                                <span className="flex items-center gap-1">
-                                  <Icon name="Archive" size={14} />
-                                  Архивировано {formatDate(announcement.archivedAt.split('T')[0])}
-                                </span>
-                              )}
-                            </CardDescription>
-                          </div>
-                          <Badge variant="secondary" className="shrink-0">
-                            Архив
-                          </Badge>
-                        </div>
-                      </CardHeader>
-                      <CardContent className="p-4 pt-0">
-                        <p className="text-sm sm:text-base text-muted-foreground break-words">{announcement.content}</p>
-                      </CardContent>
-                    </Card>
-                  ))
-                )}
               </TabsContent>
 
               <TabsContent value="profile" className="space-y-4">
@@ -759,13 +838,14 @@ export const Dashboard = () => {
               <AdminPanel
                 users={users}
                 currentUser={user!}
-                onUpdateUser={updateUser}
+                onUpdateUser={handleUpdateUser}
                 onDeleteUser={(userId) => setDeletingUserId(userId)}
                 onCreateUser={createUser}
                 onUpdatePositions={handleUpdatePositions}
                 onApproveRoom={handleApproveRoom}
                 onRejectRoom={handleRejectRoom}
                 canManageUsers={canManageUsers}
+                canViewLogs={canViewLogs}
                 userFloor={userFloor}
               />
             </TabsContent>

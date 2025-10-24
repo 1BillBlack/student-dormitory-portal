@@ -4,6 +4,7 @@ import Icon from '@/components/ui/icon';
 import { User, UserPosition } from '@/types/auth';
 import { UsersPanel } from '@/components/UsersPanel';
 import { FloorsPanel } from '@/components/FloorsPanel';
+import { LogsPanel } from '@/components/LogsPanel';
 
 interface AdminPanelProps {
   users: User[];
@@ -15,10 +16,11 @@ interface AdminPanelProps {
   onApproveRoom: (userId: string) => void;
   onRejectRoom: (userId: string) => void;
   canManageUsers: boolean;
+  canViewLogs: boolean;
   userFloor: string | null;
 }
 
-type AdminTabType = 'users' | 'floors' | 'settings';
+type AdminTabType = 'users' | 'floors' | 'logs' | 'settings';
 
 export const AdminPanel = ({ 
   users, 
@@ -30,6 +32,7 @@ export const AdminPanel = ({
   onApproveRoom,
   onRejectRoom,
   canManageUsers,
+  canViewLogs,
   userFloor
 }: AdminPanelProps) => {
   const [activeAdminTab, setActiveAdminTab] = useState<AdminTabType>(canManageUsers ? 'users' : 'floors');
@@ -43,18 +46,25 @@ export const AdminPanel = ({
   return (
     <div className="space-y-4">
       <Tabs value={activeAdminTab} onValueChange={(v) => setActiveAdminTab(v as AdminTabType)}>
-        <TabsList className="grid w-full grid-cols-3 mb-6">
+        <TabsList className="grid w-full grid-cols-4 mb-6">
           <TabsTrigger value="floors" className="gap-2">
             <Icon name="ClipboardCheck" size={18} />
-            <span>Запросы</span>
+            <span className="hidden sm:inline">Запросы</span>
+            <span className="sm:hidden">Запр.</span>
           </TabsTrigger>
           <TabsTrigger value="users" className="gap-2">
             <Icon name="Users" size={18} />
-            <span>Пользователи</span>
+            <span className="hidden sm:inline">Пользователи</span>
+            <span className="sm:hidden">Польз.</span>
+          </TabsTrigger>
+          <TabsTrigger value="logs" className="gap-2">
+            <Icon name="FileText" size={18} />
+            <span>Логи</span>
           </TabsTrigger>
           <TabsTrigger value="settings" className="gap-2">
             <Icon name="Settings" size={18} />
-            <span>Настройки</span>
+            <span className="hidden sm:inline">Настройки</span>
+            <span className="sm:hidden">Наст.</span>
           </TabsTrigger>
         </TabsList>
 
@@ -81,6 +91,14 @@ export const AdminPanel = ({
             onRejectRoom={onRejectRoom}
             userFloor={userFloor}
           />
+        </TabsContent>
+
+        <TabsContent value="logs" className="space-y-4">
+          {canViewLogs ? (
+            <LogsPanel />
+          ) : (
+            <NoAccessMessage />
+          )}
         </TabsContent>
 
         <TabsContent value="settings" className="space-y-4">
