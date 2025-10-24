@@ -15,6 +15,7 @@ import { useNotifications } from '@/contexts/NotificationsContext';
 import { useLogs } from '@/contexts/LogsContext';
 import { useToast } from '@/hooks/use-toast';
 import { User } from '@/types/auth';
+import { sortPositionsByRank, getPositionName } from '@/utils/positions';
 
 interface WorkShiftsPanelProps {
   currentUser: User;
@@ -44,10 +45,13 @@ export const WorkShiftsPanel = ({ currentUser }: WorkShiftsPanelProps) => {
   const [completeDays, setCompleteDays] = useState('');
   const [search, setSearch] = useState('');
   const [sortBy, setSortBy] = useState<'name' | 'room' | 'group' | 'floor'>('name');
+  const [userSearch, setUserSearch] = useState('');
+  const [userSortBy, setUserSortBy] = useState<'name' | 'room' | 'group' | 'position'>('name');
 
   const canManage = ['manager', 'admin', 'moderator'].includes(currentUser.role) || 
     currentUser.positions?.some(p => ['chairman', 'vice_chairman', 'secretary'].includes(p));
   
+  const canDelete = ['manager', 'admin', 'moderator'].includes(currentUser.role);
   const canComplete = canManage || currentUser.positions?.includes('household_sector');
   const isFloorHead = currentUser.positions?.some(p => p.startsWith('floor_'));
   const userFloor = currentUser.room ? currentUser.room.charAt(0) : null;
@@ -61,6 +65,14 @@ export const WorkShiftsPanel = ({ currentUser }: WorkShiftsPanelProps) => {
       const floor = u.room ? u.room.charAt(0) : null;
       if (floor !== userFloor) return false;
     }
+    
+    // Скрыть администраторов и менеджеров
+    if (['manager', 'admin'].includes(u.role)) return false;
+    
+    // Скрыть пользователей без отработок
+    const uTotals = getUserTotalDays(u.id);
+    if (uTotals.remaining === 0 && uTotals.completed === 0) return false;
+    
     const match = u.name.toLowerCase().includes(search.toLowerCase()) ||
       (u.room && u.room.includes(search)) ||
       (u.group && u.group.toLowerCase().includes(search.toLowerCase()));
@@ -72,6 +84,32 @@ export const WorkShiftsPanel = ({ currentUser }: WorkShiftsPanelProps) => {
     const aF = a.room ? a.room[0] : '';
     const bF = b.room ? b.room[0] : '';
     return aF.localeCompare(bF);
+  });
+
+  const assignableUsers = users.filter(u => {
+    if (!canManage && !isFloorHead) return false;
+    if (isFloorHead && !canManage) {
+      const floor = u.room ? u.room.charAt(0) : null;
+      if (floor !== userFloor) return false;
+    }
+    
+    // Не показывать администраторов и менеджеров
+    if (['manager', 'admin'].includes(u.role)) return false;
+    
+    const match = u.name.toLowerCase().includes(userSearch.toLowerCase()) ||
+      (u.room && u.room.includes(userSearch)) ||
+      (u.group && u.group.toLowerCase().includes(userSearch.toLowerCase()));
+    return match;
+  }).sort((a, b) => {
+    if (userSortBy === 'name') return a.name.localeCompare(b.name);
+    if (userSortBy === 'room') return (a.room || '').localeCompare(b.room || '');
+    if (userSortBy === 'group') return (a.group || '').localeCompare(b.group || '');
+    if (userSortBy === 'position') {
+      const aPos = a.positions && a.positions.length > 0 ? sortPositionsByRank(a.positions)[0] : 'zzz';
+      const bPos = b.positions && b.positions.length > 0 ? sortPositionsByRank(b.positions)[0] : 'zzz';
+      return aPos.localeCompare(bPos);
+    }
+    return 0;
   });
 
   const handleAssign = () => {
@@ -92,6 +130,11 @@ export const WorkShiftsPanel = ({ currentUser }: WorkShiftsPanelProps) => {
       }
       const u = users.find(x => x.id === selectedUserId);
       if (!u) return;
+      
+      if (['manager', 'admin'].includes(u.role)) {
+        toast({ title: 'Ошибка', description: 'Нельзя назначить отработки администраторам и менеджерам', variant: 'destructive' });
+        return;
+      }
 
       addWorkShift({ userId: u.id, userName: u.name, days: d, assignedBy: currentUser.id, assignedByName: currentUser.name, reason });
       addNotification({ type: 'work_shift_assigned', title: 'Назначены отработки', message: `Вам назначено ${d} дн. отработок. Причина: ${reason}`, userId: u.id });
@@ -102,7 +145,7 @@ export const WorkShiftsPanel = ({ currentUser }: WorkShiftsPanelProps) => {
         toast({ title: 'Ошибка', description: 'Укажите комнату', variant: 'destructive' });
         return;
       }
-      const roomUsers = users.filter(x => x.room === selectedRoom);
+      const roomUsers = users.filter(x => x.room === selectedRoom && !['manager', 'admin'].includes(x.role));
       if (!roomUsers.length) {
         toast({ title: 'Ошибка', description: 'В комнате нет жильцов', variant: 'destructive' });
         return;
@@ -175,12 +218,12 @@ export const WorkShiftsPanel = ({ currentUser }: WorkShiftsPanelProps) => {
             {myShifts.map(s => (
               <Card key={s.id}>
                 <CardHeader className="p-4">
-                  <div className="flex justify-between items-start gap-3">
-                    <div className="flex-1">
+                  <div className="flex flex-col sm:flex-row justify-between items-start gap-3">
+                    <div className="flex-1 min-w-0">
                       <CardTitle className="text-base">{s.days} дн. отработок</CardTitle>
                       <CardDescription className="mt-1">Назначено: {formatDate(s.assignedAt)} ({s.assignedByName})</CardDescription>
                     </div>
-                    <Badge variant={s.completedDays >= s.days ? 'default' : 'destructive'}>
+                    <Badge variant={s.completedDays >= s.days ? 'default' : 'destructive'} className="shrink-0">
                       {s.completedDays >= s.days ? 'Выполнено' : `Осталось: ${s.days - s.completedDays} дн.`}
                     </Badge>
                   </div>
@@ -202,9 +245,9 @@ export const WorkShiftsPanel = ({ currentUser }: WorkShiftsPanelProps) => {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
         <h3 className="text-lg font-semibold">Управление отработками</h3>
-        {canManage && <Button onClick={() => setAssignOpen(true)} className="gap-2"><Icon name="Plus" size={18} />Назначить отработки</Button>}
+        {canManage && <Button onClick={() => setAssignOpen(true)} className="gap-2 w-full sm:w-auto"><Icon name="Plus" size={18} />Назначить отработки</Button>}
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2">
@@ -220,62 +263,69 @@ export const WorkShiftsPanel = ({ currentUser }: WorkShiftsPanelProps) => {
         </Select>
       </div>
 
-      <div className="space-y-3">
-        {filtered.map(u => {
-          const uShifts = workShifts.filter(s => s.userId === u.id);
-          const uTotals = getUserTotalDays(u.id);
-          return (
-            <Card key={u.id}>
-              <CardHeader className="p-4">
-                <div className="flex justify-between items-start gap-3">
-                  <div className="flex-1">
-                    <CardTitle className="text-base">{u.name}</CardTitle>
-                    <CardDescription>{u.room && `Комната ${u.room}`}{u.group && ` • Группа ${u.group}`}</CardDescription>
+      {filtered.length === 0 ? (
+        <div className="text-center py-8 text-muted-foreground">
+          <Icon name="Users" size={48} className="mx-auto mb-4 opacity-50" />
+          <p>Нет пользователей с отработками</p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {filtered.map(u => {
+            const uShifts = workShifts.filter(s => s.userId === u.id);
+            const uTotals = getUserTotalDays(u.id);
+            return (
+              <Card key={u.id}>
+                <CardHeader className="p-4">
+                  <div className="flex flex-col sm:flex-row justify-between items-start gap-3">
+                    <div className="flex-1 min-w-0">
+                      <CardTitle className="text-base break-words">{u.name}</CardTitle>
+                      <CardDescription className="break-all">{u.room && `Комната ${u.room}`}{u.group && ` • Группа ${u.group}`}</CardDescription>
+                    </div>
+                    <div className="flex flex-col sm:flex-row gap-2 shrink-0">
+                      <Badge variant={uTotals.remaining > 0 ? 'destructive' : 'default'} className="text-nowrap">Осталось: {uTotals.remaining} дн.</Badge>
+                      <Badge variant="secondary" className="text-nowrap">Отработано: {uTotals.completed} дн.</Badge>
+                    </div>
                   </div>
-                  <div className="flex gap-2">
-                    <Badge variant={uTotals.remaining > 0 ? 'destructive' : 'default'}>Осталось: {uTotals.remaining} дн.</Badge>
-                    <Badge variant="secondary">Отработано: {uTotals.completed} дн.</Badge>
-                  </div>
-                </div>
-              </CardHeader>
-              {uShifts.length > 0 && (
-                <CardContent className="p-4 pt-0">
-                  <div className="space-y-2">
-                    {uShifts.map(s => (
-                      <div key={s.id} className="flex items-center justify-between p-2 bg-muted rounded-lg">
-                        <div className="flex-1 text-sm">
-                          <div className="font-medium">{s.days} дн. • {s.reason}</div>
-                          <div className="text-xs text-muted-foreground">{formatDate(s.assignedAt)} • Отработано: {s.completedDays}/{s.days}</div>
+                </CardHeader>
+                {uShifts.length > 0 && (
+                  <CardContent className="p-4 pt-0">
+                    <div className="space-y-2">
+                      {uShifts.map(s => (
+                        <div key={s.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 p-2 bg-muted rounded-lg">
+                          <div className="flex-1 text-sm min-w-0">
+                            <div className="font-medium break-words">{s.days} дн. • {s.reason}</div>
+                            <div className="text-xs text-muted-foreground break-all">{formatDate(s.assignedAt)} • Отработано: {s.completedDays}/{s.days}</div>
+                          </div>
+                          <div className="flex gap-1 shrink-0">
+                            {canComplete && s.completedDays < s.days && (
+                              <Button variant="ghost" size="icon" onClick={() => { setSelectedShiftId(s.id); setCompleteOpen(true); }}>
+                                <Icon name="CheckCircle" size={16} className="text-green-600" />
+                              </Button>
+                            )}
+                            {canDelete && (
+                              <Button variant="ghost" size="icon" onClick={() => { setSelectedShiftId(s.id); setDeleteOpen(true); }}>
+                                <Icon name="Trash2" size={16} className="text-destructive" />
+                              </Button>
+                            )}
+                          </div>
                         </div>
-                        <div className="flex gap-1">
-                          {canComplete && s.completedDays < s.days && (
-                            <Button variant="ghost" size="icon" onClick={() => { setSelectedShiftId(s.id); setCompleteOpen(true); }}>
-                              <Icon name="CheckCircle" size={16} className="text-green-600" />
-                            </Button>
-                          )}
-                          {canManage && (
-                            <Button variant="ghost" size="icon" onClick={() => { setSelectedShiftId(s.id); setDeleteOpen(true); }}>
-                              <Icon name="Trash2" size={16} className="text-destructive" />
-                            </Button>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              )}
-            </Card>
-          );
-        })}
-      </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                )}
+              </Card>
+            );
+          })}
+        </div>
+      )}
 
       <Dialog open={assignOpen} onOpenChange={setAssignOpen}>
-        <DialogContent>
+        <DialogContent className="max-h-[90vh] flex flex-col">
           <DialogHeader>
             <DialogTitle>Назначить отработки</DialogTitle>
             <DialogDescription>Назначьте отработки пользователю или комнате</DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
+          <div className="space-y-4 overflow-y-auto">
             <div className="space-y-2">
               <Label>Кому назначить</Label>
               <Select value={assignType} onValueChange={(v: any) => setAssignType(v)}>
@@ -289,11 +339,24 @@ export const WorkShiftsPanel = ({ currentUser }: WorkShiftsPanelProps) => {
             {assignType === 'user' ? (
               <div className="space-y-2">
                 <Label>Пользователь</Label>
+                <Input placeholder="Поиск пользователя..." value={userSearch} onChange={(e) => setUserSearch(e.target.value)} />
+                <Select value={userSortBy} onValueChange={(v: any) => setUserSortBy(v)}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="name">По имени</SelectItem>
+                    <SelectItem value="room">По комнате</SelectItem>
+                    <SelectItem value="group">По группе</SelectItem>
+                    <SelectItem value="position">По должности</SelectItem>
+                  </SelectContent>
+                </Select>
                 <Select value={selectedUserId} onValueChange={setSelectedUserId}>
                   <SelectTrigger><SelectValue placeholder="Выберите пользователя" /></SelectTrigger>
-                  <SelectContent>
-                    {filtered.map(u => (
-                      <SelectItem key={u.id} value={u.id}>{u.name} {u.room && `(${u.room})`}</SelectItem>
+                  <SelectContent className="max-h-[200px]">
+                    {assignableUsers.map(u => (
+                      <SelectItem key={u.id} value={u.id}>
+                        {u.name} {u.room && `(${u.room})`} {u.group && `• ${u.group}`}
+                        {u.positions && u.positions.length > 0 && ` • ${getPositionName(sortPositionsByRank(u.positions)[0])}`}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
